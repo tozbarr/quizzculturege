@@ -273,6 +273,279 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   .left-panel{width:100%;height:auto}
   .choices-grid,.q-choices-g{grid-template-columns:1fr}
 }
+
+/* ══ MODE ÉCRAN ══ */
+body.mode-ecran { overflow: hidden; }
+#ecran-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: var(--night);
+  flex-direction: column;
+  font-family: 'Exo 2', sans-serif;
+  color: var(--white);
+}
+#ecran-overlay.active { display: flex; }
+body::after { display: none; }
+body.mode-ecran::after {
+  display: block;
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle,rgba(135,206,235,.4) 1px,transparent 1px);
+  background-size: 200px 200px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .2;
+}
+
+/* Écran — top bar */
+.ec-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .6rem 1.5rem;
+  background: var(--night2);
+  border-bottom: 1px solid rgba(135,206,235,.15);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.ec-logo { display: flex; align-items: center; gap: .7rem; }
+.ec-quiz { font-family: 'Bebas Neue', cursive; font-size: 1.5rem; letter-spacing: 3px; color: var(--sky); }
+.ec-champ { font-family: 'Bebas Neue', cursive; font-size: .85rem; letter-spacing: 4px; color: var(--amber); }
+.ec-badges { display: flex; gap: .5rem; align-items: center; }
+.ec-badge { background: rgba(135,206,235,.12); border: 1px solid rgba(135,206,235,.2); border-radius: 6px; padding: .25rem .7rem; font-family: 'Bebas Neue', cursive; font-size: 1rem; letter-spacing: 2px; color: var(--sky); }
+.ec-badge.amber { background: rgba(255,179,0,.1); border-color: rgba(255,179,0,.25); color: var(--amber); }
+.ec-prog { height: 4px; background: rgba(135,206,235,.1); flex-shrink: 0; overflow: hidden; position: relative; z-index: 1; }
+.ec-prog-fill { height: 100%; background: linear-gradient(90deg, var(--sky), var(--amber)); transition: width .5s ease; width: 0%; }
+
+/* Écran — buzz banner */
+.ec-buzz {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9100;
+  padding: .9rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-family: 'Bebas Neue', cursive;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  letter-spacing: 4px;
+  transform: translateY(-110%);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+  background: rgba(255,179,0,.96);
+  border-bottom: 3px solid #cc8800;
+  color: #000;
+}
+.ec-buzz.show { transform: translateY(0); }
+.ec-bell { font-size: 2rem; animation: ring .4s ease infinite alternate; }
+
+/* Écran — body */
+.ec-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: .8rem 1.5rem;
+  gap: .7rem;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* Écran — timer */
+.ec-timer {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ec-timer.show { display: flex; }
+.ec-timer-big {
+  font-family: 'Bebas Neue', cursive;
+  font-size: clamp(3rem, 8vw, 5rem);
+  letter-spacing: 3px;
+  color: var(--sky);
+  filter: drop-shadow(0 0 15px rgba(135,206,235,.3));
+  transition: color .3s;
+}
+.ec-timer-big.warn { color: var(--amber); }
+.ec-timer-big.danger { color: var(--red); animation: flash .5s infinite alternate; }
+@keyframes flash { 0%{opacity:1}100%{opacity:.5} }
+
+/* Écran — streak */
+.ec-streak {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.ec-streak.show { display: flex; }
+.ec-streak-lbl { font-family: 'Bebas Neue', cursive; font-size: 1.2rem; letter-spacing: 3px; color: var(--sky); }
+.ec-s-dots { display: flex; gap: .6rem; }
+.ec-s-dot {
+  width: clamp(36px,5vw,52px);
+  height: clamp(36px,5vw,52px);
+  border-radius: 50%;
+  border: 2px solid rgba(135,206,235,.2);
+  background: rgba(135,206,235,.05);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  transition: all .3s;
+}
+.ec-s-dot.on { background: var(--green); border-color: var(--green); box-shadow: 0 0 14px var(--green); }
+.ec-s-dot.fail { background: var(--red); border-color: var(--red); animation: shake .3s; }
+.ec-streak-best { font-family: 'Bebas Neue', cursive; font-size: 1rem; color: var(--muted); }
+.ec-streak-best b { color: var(--amber); font-size: 1.2rem; }
+
+/* Écran — thèmes */
+.ec-themes {
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .6rem;
+  flex-shrink: 0;
+}
+.ec-themes.show { display: flex; }
+.ec-theme-chip {
+  background: rgba(0,50,90,.7);
+  border: 2px solid rgba(135,206,235,.2);
+  border-radius: 10px;
+  padding: .45rem 1.2rem;
+  font-family: 'Bebas Neue', cursive;
+  font-size: clamp(.9rem,2vw,1.3rem);
+  letter-spacing: 2px;
+  color: var(--offwhite);
+  backdrop-filter: blur(4px);
+  transition: all .3s;
+}
+.ec-theme-chip.sel { border-color: var(--amber); color: var(--amber); background: rgba(255,179,0,.1); box-shadow: 0 0 12px rgba(255,179,0,.2); }
+
+/* Écran — question zone */
+.ec-qzone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+.ec-tags { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+.ec-diff-tag { font-size: .72rem; padding: .25rem .75rem; border-radius: 4px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.ec-diff-tag.easy { background: rgba(46,204,113,.12); color: var(--easy); border: 1px solid rgba(46,204,113,.25); }
+.ec-diff-tag.medium { background: rgba(243,156,18,.12); color: var(--medium); border: 1px solid rgba(243,156,18,.25); }
+.ec-diff-tag.hard { background: rgba(231,76,60,.12); color: var(--hard); border: 1px solid rgba(231,76,60,.25); }
+.ec-diff-tag.spare { background: rgba(255,179,0,.12); color: var(--amber); border: 1px solid rgba(255,179,0,.25); }
+.ec-mat-tag { font-size: .7rem; padding: .22rem .65rem; border-radius: 4px; font-weight: 700; letter-spacing: 1px; background: rgba(135,206,235,.1); color: var(--sky); border: 1px solid rgba(135,206,235,.2); }
+.ec-qtxt { font-size: clamp(1.3rem,3.2vw,2.4rem); font-weight: 700; line-height: 1.38; max-width: 920px; color: var(--white); text-shadow: 0 2px 18px rgba(0,0,0,.4); }
+.ec-waiting { font-family: 'Bebas Neue', cursive; font-size: clamp(1.3rem,3vw,2rem); letter-spacing: 4px; color: var(--muted); opacity: .55; }
+.ec-choices { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; width: 100%; max-width: 920px; }
+.ec-choice {
+  background: rgba(0,45,85,.6);
+  border: 2px solid rgba(135,206,235,.16);
+  border-radius: 14px;
+  padding: .8rem 1.2rem;
+  display: flex; align-items: center; gap: .8rem;
+  font-size: clamp(.85rem,1.9vw,1.2rem);
+  font-weight: 600;
+  text-align: left;
+  backdrop-filter: blur(4px);
+  transition: all .35s;
+}
+.ec-choice.revealed { border-color: var(--green); background: rgba(46,204,113,.12); }
+.ec-choice.revealed .ec-cl { background: var(--green); color: #000; }
+.ec-cl { width: 34px; height: 34px; border-radius: 8px; background: rgba(135,206,235,.15); display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', cursive; font-size: 1.1rem; flex-shrink: 0; color: var(--sky); border: 1px solid rgba(135,206,235,.22); transition: all .35s; }
+
+/* Écran — scores bottom M1 QPUC */
+.ec-scores { flex-shrink: 0; }
+.ec-qpuc-list { display: flex; flex-direction: column; gap: .4rem; }
+.ec-qpuc-row {
+  display: flex; align-items: center; gap: .7rem;
+  background: rgba(0,40,80,.55);
+  border-radius: 10px;
+  padding: .45rem .8rem;
+  border: 1px solid rgba(135,206,235,.12);
+  backdrop-filter: blur(4px);
+  transition: all .2s;
+}
+.ec-qpuc-row.buzzed { border-color: var(--amber); background: rgba(255,179,0,.08); }
+.ec-qpuc-row.qualified { border-color: var(--green); background: rgba(46,204,113,.07); opacity: .75; }
+.ec-qr-name { font-weight: 700; font-size: clamp(.8rem,1.6vw,1rem); min-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ec-qr-bar-wrap { flex: 1; background: rgba(135,206,235,.08); border-radius: 4px; height: 10px; overflow: hidden; }
+.ec-qr-bar { height: 100%; background: linear-gradient(90deg, var(--sky), var(--amber)); border-radius: 4px; transition: width .5s ease; }
+.ec-qr-score { font-family: 'Bebas Neue', cursive; font-size: 1.5rem; color: var(--sky); min-width: 32px; text-align: right; }
+.ec-qr-badge { font-size: .62rem; padding: .08rem .32rem; border-radius: 3px; background: rgba(46,204,113,.2); color: var(--green); border: 1px solid rgba(46,204,113,.3); font-weight: 700; white-space: nowrap; }
+
+/* Écran — scores M3/Finale */
+.ec-scores-cards { display: grid; gap: .6rem; }
+.ec-score-card {
+  border-radius: 12px; padding: .6rem; text-align: center;
+  border-top: 4px solid rgba(135,206,235,.25);
+  background: rgba(0,45,85,.6);
+  backdrop-filter: blur(4px);
+  transition: all .3s;
+}
+.ec-score-card.buzzed { transform: scale(1.04); box-shadow: 0 0 20px rgba(255,179,0,.35); border-top-color: var(--amber); }
+.ec-score-card.winner { border-top-color: var(--green); background: rgba(46,204,113,.1); }
+.ec-sc-name { font-size: clamp(.7rem,1.4vw,.88rem); color: var(--muted); font-weight: 700; letter-spacing: 1px; margin-bottom: .15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ec-sc-val { font-family: 'Bebas Neue', cursive; font-size: clamp(2rem,4vw,2.8rem); line-height: 1; color: var(--sky); }
+.ec-sc-tgt { font-size: .62rem; color: var(--muted); }
+
+/* Écran — IDLE */
+.ec-idle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+.ec-idle-logo { display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+.ec-idle-quiz { font-family: 'Bebas Neue', cursive; font-size: clamp(4.5rem,13vw,9rem); letter-spacing: 8px; color: var(--sky); line-height: 1; filter: drop-shadow(0 0 25px rgba(135,206,235,.3)); animation: glow 3s ease-in-out infinite; }
+@keyframes glow { 0%,100%{filter:drop-shadow(0 0 15px rgba(135,206,235,.2))}50%{filter:drop-shadow(0 0 35px rgba(135,206,235,.5))} }
+.ec-idle-champ { font-family: 'Bebas Neue', cursive; font-size: clamp(2.2rem,5.5vw,4rem); letter-spacing: 10px; color: var(--amber); line-height: 1; }
+.ec-idle-div { width: 100%; height: 2px; background: linear-gradient(90deg,transparent,rgba(135,206,235,.5),transparent); margin: .4rem 0; }
+.ec-idle-sub { font-size: clamp(.8rem,1.4vw,1rem); letter-spacing: 5px; color: var(--offwhite); text-transform: uppercase; }
+.ec-trophy { animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)} }
+.ec-planning { display: flex; gap: .7rem; flex-wrap: wrap; justify-content: center; margin-top: .5rem; }
+.ec-ps { background: rgba(0,50,100,.6); border: 1px solid rgba(135,206,235,.18); border-radius: 10px; padding: .55rem 1.1rem; text-align: center; min-width: 95px; }
+.ec-ps-time { font-family: 'Bebas Neue', cursive; font-size: 1.1rem; color: var(--amber); letter-spacing: 2px; }
+.ec-ps-lbl { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+.ec-ps.pause { border-color: rgba(255,179,0,.3); }
+.ec-ps.finale { border-color: rgba(135,206,235,.4); }
+
+/* Écran — résultats */
+.ec-results {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+.ec-res-title { font-family: 'Bebas Neue', cursive; font-size: clamp(2.5rem,9vw,6rem); letter-spacing: 6px; color: var(--sky); line-height: 1; }
+.ec-podium { display: flex; align-items: flex-end; justify-content: center; gap: 1.2rem; }
+.ec-pod-col { display: flex; flex-direction: column; align-items: center; gap: .5rem; width: clamp(100px,15vw,160px); }
+.ec-pod-name { font-size: clamp(.8rem,1.4vw,1rem); font-weight: 700; background: rgba(0,45,85,.7); border-radius: 6px; padding: .28rem .5rem; width: 100%; text-align: center; color: var(--white); border: 1px solid rgba(135,206,235,.18); }
+.ec-pod-block { width: 100%; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', cursive; font-size: clamp(1.8rem,4.5vw,3.2rem); }
+.ec-pod-col:nth-child(1) .ec-pod-block { height: clamp(70px,12vh,120px); background: var(--sky); color: var(--night); }
+.ec-pod-col:nth-child(2) .ec-pod-block { height: clamp(100px,18vh,165px); background: var(--amber); color: #000; }
+.ec-pod-col:nth-child(3) .ec-pod-block { height: clamp(55px,9vh,90px); background: #cd7f32; }
+.ec-pod-score { font-family: 'Bebas Neue', cursive; font-size: 1.2rem; color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -1134,6 +1407,177 @@ renderEleves();
 renderQList();
 renderStats();
 
+// ══════════════════════════════════════════════════════
+// MODE ÉCRAN — géré via ?ecran dans l'URL
+// ══════════════════════════════════════════════════════
+const IS_ECRAN = window.location.search.includes('ecran');
+const DIFF_LABELS_EC = {easy:'Facile',medium:'Moyen',hard:'Difficile',spare:'Joker'};
+
+if(IS_ECRAN) {
+  // Hide everything, show écran overlay
+  document.body.classList.add('mode-ecran');
+  document.getElementById('ecran-overlay').classList.add('active');
+  // Hide config pages
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  
+  // Listen to Firebase for game state
+  function startEcranListener() {
+    fbLoad('gameState', handleEcranState);
+    // Poll every 500ms for real-time updates
+    setInterval(() => fbLoad('gameState', handleEcranState), 500);
+  }
+  
+  function handleEcranState(s) {
+    if(!s) return;
+    const type = s.type;
+    
+    if(!type || type === 'idle' || s.screen === 'page-config' || s.screen === 'page-game-setup') {
+      showEcranSection('idle');
+      return;
+    }
+    if(s.screen === 'pg-results' || s.screen === 'page-results') {
+      renderEcranResults(s);
+      return;
+    }
+    if(s.screen === 'page-game' || s.screen === 'pg-game') {
+      renderEcranGame(s);
+      return;
+    }
+  }
+  
+  function showEcranSection(sec) {
+    document.getElementById('ec-idle').style.display = sec==='idle' ? 'flex' : 'none';
+    document.getElementById('ec-game').style.display = sec==='game' ? 'flex' : 'none';
+    document.getElementById('ec-results').style.display = sec==='results' ? 'flex' : 'none';
+  }
+  
+  function renderEcranGame(s) {
+    showEcranSection('game');
+    const isM1 = s.manche==='m1';
+    const isM2 = s.manche==='m2';
+    const target = s.target || 9;
+    
+    // Header
+    document.getElementById('ec-level').textContent = (s.level||'').toUpperCase();
+    document.getElementById('ec-manche').textContent = s.mancheLabel || '';
+    document.getElementById('ec-qctr').textContent = s.qIdx>=0 ? `Q ${s.qIdx+1}/${s.qTotal}` : '—';
+    if(s.qIdx>=0) document.getElementById('ec-prog-fill').style.width = `${((s.qIdx+1)/s.qTotal)*100}%`;
+    
+    // Timer
+    const timerEl = document.getElementById('ec-timer');
+    timerEl.classList.toggle('show', isM2);
+    if(isM2 && s.timerSec !== undefined) {
+      const sec = s.timerSec;
+      const m = Math.floor(sec/60), sc = sec%60;
+      const el = document.getElementById('ec-timer-big');
+      el.textContent = `${m}:${sc.toString().padStart(2,'0')}`;
+      el.className = 'ec-timer-big' + (sec<=10?' danger':sec<=20?' warn':'');
+    }
+    
+    // Streak
+    document.getElementById('ec-streak').classList.toggle('show', isM2);
+    if(isM2) updateEcranStreak(s.streak||0, s.bestStreak||0);
+    
+    // Thèmes
+    const themesEl = document.getElementById('ec-themes');
+    if(isM2 && s.themes && s.themes.length) {
+      themesEl.classList.add('show');
+      themesEl.innerHTML = s.themes.map(t=>`<div class="ec-theme-chip${t.sel?' sel':''}">${t.t}</div>`).join('');
+    } else { themesEl.classList.remove('show'); }
+    
+    // Buzz banner
+    const buzzEl = document.getElementById('ec-buzz');
+    if(s.buzzed) { document.getElementById('ec-buzz-name').textContent = s.buzzed; buzzEl.classList.add('show'); }
+    else { buzzEl.classList.remove('show'); }
+    
+    // Question
+    const q = s.question;
+    if(q) {
+      const dt = document.getElementById('ec-diff');
+      dt.style.display=''; dt.className='ec-diff-tag '+(q.diff||'easy'); dt.textContent=DIFF_LABELS_EC[q.diff||'easy'];
+      const mt = document.getElementById('ec-mat');
+      mt.style.display=''; mt.textContent=q.matiere||'';
+      document.getElementById('ec-qtxt').innerHTML = `<div class="ec-qtxt">${q.text}</div>`;
+      document.getElementById('ec-choices').innerHTML = ['A','B','C','D'].map((l,i)=>
+        `<div class="ec-choice${q.revealed&&i===q.correct?' revealed':''}">
+          <span class="ec-cl">${l}</span><span>${q.choices[i]}</span>
+        </div>`).join('');
+    } else {
+      document.getElementById('ec-diff').style.display='none';
+      document.getElementById('ec-mat').style.display='none';
+      document.getElementById('ec-qtxt').innerHTML='<div class="ec-waiting">En attente de la prochaine question...</div>';
+      document.getElementById('ec-choices').innerHTML='';
+    }
+    
+    // Scores
+    if(s.players && s.scores) renderEcranScores(s.players, s.scores, s.buzzed, s.manche, target, s.qualifiedPlayers||[]);
+  }
+  
+  function renderEcranScores(players, scores, buzzed, manche, target, qualified) {
+    const cont = document.getElementById('ec-scores');
+    const isM1 = manche==='m1';
+    const isM2 = manche==='m2';
+    
+    if(isM1) {
+      cont.innerHTML = `<div class="ec-qpuc-list">${players.map(p=>{
+        const sc=scores[p]||0, isQ=qualified.includes(p);
+        return `<div class="ec-qpuc-row${buzzed===p?' buzzed':''}${isQ?' qualified':''}">
+          <div class="ec-qr-name">${p}</div>
+          <div class="ec-qr-bar-wrap"><div class="ec-qr-bar" style="width:${isQ?100:Math.min(sc/target*100,100)}%"></div></div>
+          <div class="ec-qr-score">${isQ?'✓':sc}</div>
+          ${isQ?'<div class="ec-qr-badge">Qualifié ✓</div>':''}
+        </div>`;
+      }).join('')}</div>`;
+    } else {
+      const n = players.length;
+      cont.innerHTML = `<div class="ec-scores-cards" style="grid-template-columns:repeat(${Math.min(n,4)},1fr)">${
+        players.map(p=>{
+          const sc=scores[p]||0;
+          return `<div class="ec-score-card${buzzed===p?' buzzed':''}${sc>=target?' winner':''}">
+            <div class="ec-sc-name">${p}</div>
+            <div class="ec-sc-val">${sc}</div>
+            <div class="ec-sc-tgt">/ ${target} pts</div>
+          </div>`;
+        }).join('')
+      }</div>`;
+    }
+  }
+  
+  function updateEcranStreak(streak, best) {
+    for(let i=0;i<4;i++){
+      const d=document.getElementById('ecsd'+i);
+      if(i<streak){d.classList.add('on');d.textContent='✓';}
+      else{d.classList.remove('on','fail');d.textContent='';}
+    }
+    document.getElementById('ec-streak-best').textContent=best;
+  }
+  
+  function renderEcranResults(s) {
+    showEcranSection('results');
+    if(!s.players||!s.scores) return;
+    const sorted = s.players.map(p=>({name:p,score:s.scores[p]||0})).sort((a,b)=>b.score-a.score);
+    const top = [sorted[1],sorted[0],sorted[2]].filter(Boolean);
+    document.getElementById('ec-res-title').textContent = s.manche==='m1'?'🏅 QUALIFIÉS':s.manche==='m2'?'🏅 4 À LA SUITE':'🏆 CHAMPION !';
+    document.getElementById('ec-podium').innerHTML = top.map((p,i)=>`
+      <div class="ec-pod-col">
+        <div class="ec-pod-name">${p.name}</div>
+        <div class="ec-pod-block">${['🥈','🥇','🥉'][i]}</div>
+        <div class="ec-pod-score">${p.score} pts</div>
+      </div>`).join('');
+  }
+  
+  // Start listening after Firebase init
+  setTimeout(startEcranListener, 1000);
+}
+
+// Modify syncGameState to also write screen info for écran mode
+const _origSync = syncGameState;
+syncGameState = function() {
+  _origSync();
+  // écran polls automatically via fbLoad interval
+};
+
+
 // Sync on startup
 setTimeout(()=>{
   // Push local questions to Firebase (PATCH = merge, won't erase other profs)
@@ -1407,6 +1851,97 @@ function savePhotoQuestions(){
 </script>
 
 
+
+
+<!-- ══ ÉCRAN OVERLAY ══ -->
+<div id="ecran-overlay">
+
+  <!-- IDLE -->
+  <div id="ec-idle" class="ec-idle">
+    <div class="ec-idle-logo">
+      <div class="ec-trophy">
+        <svg width="110" height="132" viewBox="0 0 90 108" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="tgec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFB300"/><stop offset="100%" style="stop-color:#cc8800"/></linearGradient></defs>
+          <path d="M28 8 Q18 8 15 24 Q12 42 22 52 L34 59 L34 72 L22 76 L22 83 L68 83 L68 76 L56 72 L56 59 L68 52 Q78 42 75 24 Q72 8 62 8 Z" fill="url(#tgec)" stroke="#cc8800" stroke-width="0.8"/>
+          <path d="M15 15 Q2 15 1 30 Q0 44 15 44" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/>
+          <path d="M75 15 Q88 15 89 30 Q90 44 75 44" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/>
+          <rect x="22" y="81" width="46" height="7" rx="2" fill="url(#tgec)"/>
+          <rect x="16" y="86" width="58" height="6" rx="2" fill="url(#tgec)"/>
+          <polygon points="45,18 49,30 62,30 52,37 56,49 45,42 34,49 38,37 28,30 41,30" fill="#fff" opacity="0.95"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ec-idle-quiz">QUIZ</div>
+        <div class="ec-idle-champ">CHAMPION</div>
+        <div class="ec-idle-div"></div>
+        <div class="ec-idle-sub">Championnat du Collège</div>
+      </div>
+    </div>
+    <div class="ec-planning">
+      <div class="ec-ps"><div class="ec-ps-time">13h30</div><div class="ec-ps-lbl">6ème</div></div>
+      <div class="ec-ps"><div class="ec-ps-time">14h05</div><div class="ec-ps-lbl">5ème</div></div>
+      <div class="ec-ps"><div class="ec-ps-time">14h40</div><div class="ec-ps-lbl">4ème</div></div>
+      <div class="ec-ps pause"><div class="ec-ps-time">15h00</div><div class="ec-ps-lbl">☕ Pause</div></div>
+      <div class="ec-ps"><div class="ec-ps-time">15h25</div><div class="ec-ps-lbl">3ème</div></div>
+      <div class="ec-ps finale"><div class="ec-ps-time">16h00</div><div class="ec-ps-lbl">🏆 Finale</div></div>
+    </div>
+    <div style="color:var(--muted);font-size:.85rem;letter-spacing:2px">Ouvrez animateur.html pour commencer</div>
+  </div>
+
+  <!-- GAME -->
+  <div id="ec-game" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div class="ec-buzz" id="ec-buzz"><span class="ec-bell">🔔</span><span id="ec-buzz-name">—</span><span>A BUZZÉ !</span></div>
+    <div class="ec-topbar">
+      <div class="ec-logo">
+        <svg width="26" height="32" viewBox="0 0 90 108" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="tgec2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFB300"/><stop offset="100%" style="stop-color:#cc8800"/></linearGradient></defs>
+          <path d="M28 8 Q18 8 15 24 Q12 42 22 52 L34 59 L34 72 L22 76 L22 83 L68 83 L68 76 L56 72 L56 59 L68 52 Q78 42 75 24 Q72 8 62 8 Z" fill="url(#tgec2)"/>
+          <path d="M15 15 Q2 15 1 30 Q0 44 15 44" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/>
+          <path d="M75 15 Q88 15 89 30 Q90 44 75 44" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/>
+          <rect x="16" y="86" width="58" height="6" rx="2" fill="url(#tgec2)"/>
+          <polygon points="45,18 49,30 62,30 52,37 56,49 45,42 34,49 38,37 28,30 41,30" fill="#fff" opacity="0.9"/>
+        </svg>
+        <div><div class="ec-quiz">QUIZ CHAMPION</div><div class="ec-champ">Championnat du Collège</div></div>
+      </div>
+      <div class="ec-badges">
+        <div class="ec-badge" id="ec-level">6E</div>
+        <div class="ec-badge amber" id="ec-manche">QUALIFS</div>
+        <div class="ec-badge" id="ec-qctr">—</div>
+      </div>
+    </div>
+    <div class="ec-prog"><div class="ec-prog-fill" id="ec-prog-fill"></div></div>
+    <div class="ec-body">
+      <div class="ec-timer" id="ec-timer"><div class="ec-timer-big" id="ec-timer-big">1:00</div></div>
+      <div class="ec-streak" id="ec-streak">
+        <div class="ec-streak-lbl">SÉRIE</div>
+        <div class="ec-s-dots">
+          <div class="ec-s-dot" id="ecsd0"></div><div class="ec-s-dot" id="ecsd1"></div>
+          <div class="ec-s-dot" id="ecsd2"></div><div class="ec-s-dot" id="ecsd3"></div>
+        </div>
+        <div class="ec-streak-best">Meilleur : <b id="ec-streak-best">0</b>/4</div>
+      </div>
+      <div class="ec-themes" id="ec-themes"></div>
+      <div class="ec-qzone">
+        <div class="ec-tags">
+          <div class="ec-diff-tag easy" id="ec-diff" style="display:none"></div>
+          <div class="ec-mat-tag" id="ec-mat" style="display:none"></div>
+        </div>
+        <div id="ec-qtxt"><div class="ec-waiting">En attente de la prochaine question...</div></div>
+        <div class="ec-choices" id="ec-choices"></div>
+      </div>
+      <div class="ec-scores" id="ec-scores"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="ec-results" style="display:none">
+    <div class="ec-results">
+      <div class="ec-res-title" id="ec-res-title">🏆 QUIZ CHAMPION</div>
+      <div class="ec-podium" id="ec-podium"></div>
+    </div>
+  </div>
+
+</div>
 
 </body>
 </html>
