@@ -529,30 +529,29 @@ const GROUPES_CFG={
 function loadLS(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}
 // Élèves pré-chargés — mis à jour automatiquement
 const DEFAULT_ELEVES = {"6e": ["Zitouni", "Yasmine", "Romaissa", "Ismael", "Youssouf", "Neyla", "Mohamed Jabber", "Youssef", "Mohamed", "Amina", "Jennah", "Jouwayriah", "Ounaïssa", "Soumaya", "Sarah K", "Ahmed", "Fahed", "Sarah JC", "Rayane", "Khadija", "Iyad", "Abdallah", "Hanae", "Zineb"], "5e": ["Nousseyba", "Seyfedine", "Meryem", "Mellina", "Asmaa", "Assia", "Insaaf", "Neyla", "Bilel B", "Serine", "Lilya", "Djena D", "Ibrahim", "Lyna", "Yasmin", "Bilel M", "Besmala", "Amir", "Djena OM", "Souheyl"], "4e": ["Younes Ait Sidi", "Yassin", "Fatima", "Oumaima", "Aisha", "Mariam", "Younes El Kadi", "Hana", "Arslane", "Sidi", "Amina", "Oumaya", "Ishaq", "Mina", "Medina", "Abdeljalil"], "3e": ["Sarah", "Bilel", "Maissa", "Ayman", "Amel", "Lokmane", "Medine", "Alae", "Soumeya", "Yasmin", "Aliah"]};
-const DEFAULT_QUESTIONS = {"6e": {"EPS": {"easy": [{"question": "En badminton, comment s'appelle l'objet que l'on frappe avec la raquette ?", "choices": ["une balle", "un palet", "un volant", "un témoin"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "En relais, quel objet transmet-on à son partenaire ?", "choices": ["un ballon", "une raquette", "un dossard", "un témoin"], "correct": 3, "diff": "easy", "matiere": "EPS"}, {"question": "En ultimate, avec quoi joue-t-on ?", "choices": ["un frisebee (disque)", "une balle", "un ballon", "un volant"], "correct": 0, "diff": "easy", "matiere": "EPS"}, {"question": "En course longue, quel est l'objectif principal ?", "choices": ["sauter le plus loin possible", "courir longtemps à une allure adaptée", "marquer un panier", "faire des figures"], "correct": 1, "diff": "easy", "matiere": "EPS"}, {"question": "En acrosport, avant de réaliser une figure, il faut surtout :", "choices": ["courir vite", "fermer les yeux", "vérifier la sécurité et les placements", "parler le moins possible"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "En badminton, combien de raquettes utilise un joueur ?", "choices": ["2", "3", "1", "4"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "En ultimate, a-t-on le droit de courir avec le frisbee dans les mains ?", "choices": ["oui, autant qu'on veut", "oui, sur 10 mètres", "seulement en défense", "non"], "correct": 3, "diff": "easy", "matiere": "EPS"}, {"question": "En acrosport, comment appelle-t-on l'élève qui soutient un partenaire ?", "choices": ["le juge", "le porteur", "l'arbitre", "le chronométreur"], "correct": 1, "diff": "easy", "matiere": "EPS"}, {"question": "Dans un relais, quand le coureur suivant démarre-t-il ?", "choices": ["après la course", "quand il veut", "pour recevoir le témoin dans la zone prévue", "à l'arrivée"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "Pendant une course longue, boire de l'eau permet :", "choices": ["de courir deux fois plus vite", "de rester hydraté", "d'éviter les règles de courses", "de ne plus être fatigué"], "correct": 1, "diff": "easy", "matiere": "EPS"}], "medium": [{"question": "En badminton, si le volant tombe dans le terrain adverse sans être renvoyé, que se passe-t-il ?", "choices": ["le point est rejoué", "l'adversaire marque le point", "personne ne marque", "le joueur qui a envoyé le volant marque le point"], "correct": 3, "diff": "medium", "matiere": "EPS"}, {"question": "En ultimate, comment marque-t-on un point ?", "choices": ["en attrapant le disque dans la zone d'en-but adverse", "en touchant un adversaire avec le disque", "en lançant le disque dans un panier", "en faisant dix passes de suite"], "correct": 0, "diff": "medium", "matiere": "EPS"}, {"question": "En relais, quel est le principal risque d'une mauvaise transmission du témoin ?", "choices": ["faire perdre du temps ou faire tomber le témoin", "courir plus vite", "marquer plus de points", "gagner automatiquement"], "correct": 0, "diff": "medium", "matiere": "EPS"}, {"question": "En course longue, comment reconnaître une allure adaptée ?", "choices": ["on ne peut plus parler du tout", "on peut encore parler par petites phrases en courant", "on s'arrête régulièrement", "on sprinte dès le départ"], "correct": 1, "diff": "medium", "matiere": "EPS"}, {"question": "En acrosport, quel est le rôle principal du pareur ?", "choices": ["arbitrer la prestation", "donner le départ", "compter les points", "sécuriser la figure et aider en cas de déséquilibre"], "correct": 3, "diff": "medium", "matiere": "EPS"}, {"question": "En badminton, où doit tomber le volant lors d'un service réglementaire ?a", "choices": ["n'importe où dans le gymnase", "dans son propre terrain", "dans la zone de service adverse", "derrière le filet"], "correct": 2, "diff": "medium", "matiere": "EPS"}, {"question": "En ultimate, lorsqu'un joueur possède le disque, que peut-il faire ?", "choices": ["courir avec le disque", "faire rebondir le disque au sol", "garder le disque indéfiniment", "pivoter sur le pied pour chercher une passe"], "correct": 3, "diff": "medium", "matiere": "EPS"}, {"question": "En acrosport, pourquoi les figures sont-elles réalisées à plusieurs ?", "choices": ["pour créer des équilibres et des formes impossibles seul", "pour aller plus vite", "pour gagner plus de points automatiquement", "pour éviter l'échauffement"], "correct": 0, "diff": "medium", "matiere": "EPS"}, {"question": "En course longue, que risque un élève qui part beaucoup trop vite ?", "choices": ["rien de particulier", "il gagne forcément", "il s'essouffle rapidement et ralentit ensuite", "il court plus longtemps"], "correct": 2, "diff": "medium", "matiere": "EPS"}, {"question": "En badminton, quelle qualité est particulièrement importante pour se déplacer efficacement ?", "choices": ["la force des bras uniquement", "la rapidité des déplacements et le replacement", "le poids du joueur", "la taille de la raquette uniquement"], "correct": 1, "diff": "medium", "matiere": "EPS"}], "hard": [{"question": "En badminton, pourquoi est-il important de se replacer au centre du terrain après avoir frappé le volant ?", "choices": ["pour être plus proche du filet", "pour impressionner l'adversaire", "pour servir plus vite", "pour pouvoir atteindre plus rapidement toutes les zones du terrain"], "correct": 2, "diff": "hard", "matiere": "EPS"}, {"question": "En ultimate, quelle stratégie permet le plus souvent de conserver le disque ?", "choices": ["lancer le plus loin possible à chaque fois", "jouer seul", "multiplier les passes courtes vers des partenaires démarqués", "garder le disque le plus longtemps possible"], "correct": 2, "diff": "hard", "matiere": "EPS"}, {"question": "Lors d'une transmission en relais, pourquoi le receveur commence-t-il à accélérer avant de recevoir le témoin ?", "choices": ["Pour limiter la perte de vitesse au moment de la transmission", "pour fatiguer son partenaire", "pour courir plus longtemps", "pour raccourcir la distance"], "correct": 0, "diff": "hard", "matiere": "EPS"}, {"question": "En course longue, qu'appelle-t-on une allure régulière ?", "choices": ["courir de plus en plus vite à chaque tour", "maintenir une vitesse proche tout au long de l'effort", "alterner sprint et marche", "courir très lentement du début à la fin"], "correct": 1, "diff": "hard", "matiere": "EPS"}, {"question": "En acrosport, quel est le principal intérêt de communiquer avant de réaliser une figure ?", "choices": ["choisir la musique", "décider les rôles et améliorer la sécurité", "gagner automatiquement des points", "coordonner les rôles et améliorer la sécurité"], "correct": 3, "diff": "hard", "matiere": "EPS"}, {"question": "En badminton, quel coup est généralement utilisé pour envoyer le volant très loin vers le fond du terrain adverse ?", "choices": ["le dégagement", "l'amorti", "le service court", "le lob défensif au filet"], "correct": 0, "diff": "hard", "matiere": "EPS"}, {"question": "En ultimate, pourquoi est-il utile de se démarquer après une passe ?", "choices": ["Pour sortir du terrain", "pour gêner l'arbitre", "pour rester immobile", "pour offrir une nouvelle solution de passe à son équipe"], "correct": 3, "diff": "hard", "matiere": "EPS"}, {"question": "En course longue, quel comportement permet généralement d'améliorer ses performances sur plusieurs semaines ?", "choices": ["courir très vite une seule fois", "ne jamais s'échauffer", "s'entraîner régulièrement et gérer son effort", "courir uniquement quand on a envie"], "correct": 2, "diff": "hard", "matiere": "EPS"}, {"question": "En acrosport, pourquoi les porteurs adoptent-ils souvent une position stable avec les appuis écartés ?", "choices": ["pour augmenter leur équilibre et leur stabilité", "pour être plus grands", "pour être plus rapides", "pour voir le public"], "correct": 0, "diff": "hard", "matiere": "EPS"}, {"question": "En badminton, quelle tactique est souvent efficace contre un adversaire peu mobile ?", "choices": ["toujours viser au même endroit", "frapper uniquement très fort", "jouer uniquement au filet", "varier les directions pour le faire se déplacer"], "correct": 3, "diff": "hard", "matiere": "EPS"}]}}};
+
 let eleves=(()=>{ try{ const v=localStorage.getItem('qc_eleves'); const d=v?JSON.parse(v):null; if(d && Object.keys(d).some(k=>d[k]&&d[k].length>0)) return d; } catch{} return JSON.parse(JSON.stringify(DEFAULT_ELEVES)); })();
+const DEFAULT_QUESTIONS = {"6e": {"EPS": {"easy": [{"question": "En badminton, comment s'appelle l'objet que l'on frappe avec la raquette ?", "choices": ["une balle", "un palet", "un volant", "un témoin"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "En relais, quel objet transmet-on à son partenaire ?", "choices": ["un ballon", "une raquette", "un dossard", "un témoin"], "correct": 3, "diff": "easy", "matiere": "EPS"}, {"question": "En ultimate, avec quoi joue-t-on ?", "choices": ["un frisebee (disque)", "une balle", "un ballon", "un volant"], "correct": 0, "diff": "easy", "matiere": "EPS"}, {"question": "En course longue, quel est l'objectif principal ?", "choices": ["sauter le plus loin possible", "courir longtemps à une allure adaptée", "marquer un panier", "faire des figures"], "correct": 1, "diff": "easy", "matiere": "EPS"}, {"question": "En acrosport, avant de réaliser une figure, il faut surtout :", "choices": ["courir vite", "fermer les yeux", "vérifier la sécurité et les placements", "parler le moins possible"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "En badminton, combien de raquettes utilise un joueur ?", "choices": ["2", "3", "1", "4"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "En ultimate, a-t-on le droit de courir avec le frisbee dans les mains ?", "choices": ["oui, autant qu'on veut", "oui, sur 10 mètres", "seulement en défense", "non"], "correct": 3, "diff": "easy", "matiere": "EPS"}, {"question": "En acrosport, comment appelle-t-on l'élève qui soutient un partenaire ?", "choices": ["le juge", "le porteur", "l'arbitre", "le chronométreur"], "correct": 1, "diff": "easy", "matiere": "EPS"}, {"question": "Dans un relais, quand le coureur suivant démarre-t-il ?", "choices": ["après la course", "quand il veut", "pour recevoir le témoin dans la zone prévue", "à l'arrivée"], "correct": 2, "diff": "easy", "matiere": "EPS"}, {"question": "Pendant une course longue, boire de l'eau permet :", "choices": ["de courir deux fois plus vite", "de rester hydraté", "d'éviter les règles de courses", "de ne plus être fatigué"], "correct": 1, "diff": "easy", "matiere": "EPS"}], "medium": [{"question": "En badminton, si le volant tombe dans le terrain adverse sans être renvoyé, que se passe-t-il ?", "choices": ["le point est rejoué", "l'adversaire marque le point", "personne ne marque", "le joueur qui a envoyé le volant marque le point"], "correct": 3, "diff": "medium", "matiere": "EPS"}, {"question": "En ultimate, comment marque-t-on un point ?", "choices": ["en attrapant le disque dans la zone d'en-but adverse", "en touchant un adversaire avec le disque", "en lançant le disque dans un panier", "en faisant dix passes de suite"], "correct": 0, "diff": "medium", "matiere": "EPS"}, {"question": "En relais, quel est le principal risque d'une mauvaise transmission du témoin ?", "choices": ["faire perdre du temps ou faire tomber le témoin", "courir plus vite", "marquer plus de points", "gagner automatiquement"], "correct": 0, "diff": "medium", "matiere": "EPS"}, {"question": "En course longue, comment reconnaître une allure adaptée ?", "choices": ["on ne peut plus parler du tout", "on peut encore parler par petites phrases en courant", "on s'arrête régulièrement", "on sprinte dès le départ"], "correct": 1, "diff": "medium", "matiere": "EPS"}, {"question": "En acrosport, quel est le rôle principal du pareur ?", "choices": ["arbitrer la prestation", "donner le départ", "compter les points", "sécuriser la figure et aider en cas de déséquilibre"], "correct": 3, "diff": "medium", "matiere": "EPS"}, {"question": "En badminton, où doit tomber le volant lors d'un service réglementaire ?a", "choices": ["n'importe où dans le gymnase", "dans son propre terrain", "dans la zone de service adverse", "derrière le filet"], "correct": 2, "diff": "medium", "matiere": "EPS"}, {"question": "En ultimate, lorsqu'un joueur possède le disque, que peut-il faire ?", "choices": ["courir avec le disque", "faire rebondir le disque au sol", "garder le disque indéfiniment", "pivoter sur le pied pour chercher une passe"], "correct": 3, "diff": "medium", "matiere": "EPS"}, {"question": "En acrosport, pourquoi les figures sont-elles réalisées à plusieurs ?", "choices": ["pour créer des équilibres et des formes impossibles seul", "pour aller plus vite", "pour gagner plus de points automatiquement", "pour éviter l'échauffement"], "correct": 0, "diff": "medium", "matiere": "EPS"}, {"question": "En course longue, que risque un élève qui part beaucoup trop vite ?", "choices": ["rien de particulier", "il gagne forcément", "il s'essouffle rapidement et ralentit ensuite", "il court plus longtemps"], "correct": 2, "diff": "medium", "matiere": "EPS"}, {"question": "En badminton, quelle qualité est particulièrement importante pour se déplacer efficacement ?", "choices": ["la force des bras uniquement", "la rapidité des déplacements et le replacement", "le poids du joueur", "la taille de la raquette uniquement"], "correct": 1, "diff": "medium", "matiere": "EPS"}], "hard": [{"question": "En badminton, pourquoi est-il important de se replacer au centre du terrain après avoir frappé le volant ?", "choices": ["pour être plus proche du filet", "pour impressionner l'adversaire", "pour servir plus vite", "pour pouvoir atteindre plus rapidement toutes les zones du terrain"], "correct": 2, "diff": "hard", "matiere": "EPS"}, {"question": "En ultimate, quelle stratégie permet le plus souvent de conserver le disque ?", "choices": ["lancer le plus loin possible à chaque fois", "jouer seul", "multiplier les passes courtes vers des partenaires démarqués", "garder le disque le plus longtemps possible"], "correct": 2, "diff": "hard", "matiere": "EPS"}, {"question": "Lors d'une transmission en relais, pourquoi le receveur commence-t-il à accélérer avant de recevoir le témoin ?", "choices": ["Pour limiter la perte de vitesse au moment de la transmission", "pour fatiguer son partenaire", "pour courir plus longtemps", "pour raccourcir la distance"], "correct": 0, "diff": "hard", "matiere": "EPS"}, {"question": "En course longue, qu'appelle-t-on une allure régulière ?", "choices": ["courir de plus en plus vite à chaque tour", "maintenir une vitesse proche tout au long de l'effort", "alterner sprint et marche", "courir très lentement du début à la fin"], "correct": 1, "diff": "hard", "matiere": "EPS"}, {"question": "En acrosport, quel est le principal intérêt de communiquer avant de réaliser une figure ?", "choices": ["choisir la musique", "décider les rôles et améliorer la sécurité", "gagner automatiquement des points", "coordonner les rôles et améliorer la sécurité"], "correct": 3, "diff": "hard", "matiere": "EPS"}, {"question": "En badminton, quel coup est généralement utilisé pour envoyer le volant très loin vers le fond du terrain adverse ?", "choices": ["le dégagement", "l'amorti", "le service court", "le lob défensif au filet"], "correct": 0, "diff": "hard", "matiere": "EPS"}, {"question": "En ultimate, pourquoi est-il utile de se démarquer après une passe ?", "choices": ["Pour sortir du terrain", "pour gêner l'arbitre", "pour rester immobile", "pour offrir une nouvelle solution de passe à son équipe"], "correct": 3, "diff": "hard", "matiere": "EPS"}, {"question": "En course longue, quel comportement permet généralement d'améliorer ses performances sur plusieurs semaines ?", "choices": ["courir très vite une seule fois", "ne jamais s'échauffer", "s'entraîner régulièrement et gérer son effort", "courir uniquement quand on a envie"], "correct": 2, "diff": "hard", "matiere": "EPS"}, {"question": "En acrosport, pourquoi les porteurs adoptent-ils souvent une position stable avec les appuis écartés ?", "choices": ["pour augmenter leur équilibre et leur stabilité", "pour être plus grands", "pour être plus rapides", "pour voir le public"], "correct": 0, "diff": "hard", "matiere": "EPS"}, {"question": "En badminton, quelle tactique est souvent efficace contre un adversaire peu mobile ?", "choices": ["toujours viser au même endroit", "frapper uniquement très fort", "jouer uniquement au filet", "varier les directions pour le faire se déplacer"], "correct": 3, "diff": "hard", "matiere": "EPS"}]}}};
 let questions=(()=>{
   try{
     const v=localStorage.getItem('qc_questions');
-    const d=v?JSON.parse(v):null;
-    if(d && Object.keys(d).some(k=>Object.keys(d[k]||{}).length>0)) return d;
-  }catch{}
-  // Merge DEFAULT_QUESTIONS with empty structure
-  const base={};
-  ['6e','5e','4e','3e'].forEach(l=>{
-    base[l]={};
-    const mats=['Français','Histoire','Géographie','Physique','SVT','Maths','EPS','Art','Musique','Anglais','Arabe','Espagnol','Techno'];
-    mats.forEach(m=>{ base[l][m]={easy:[],medium:[],hard:[],spare:[]}; });
-  });
-  // Inject DEFAULT_QUESTIONS
-  Object.entries(DEFAULT_QUESTIONS).forEach(([lvl,mats])=>{
-    if(!base[lvl]) base[lvl]={};
-    Object.entries(mats).forEach(([mat,diffs])=>{
-      if(!base[lvl][mat]) base[lvl][mat]={easy:[],medium:[],hard:[],spare:[]};
-      Object.entries(diffs).forEach(([diff,qs])=>{ base[lvl][mat][diff]=qs; });
-    });
-  });
-  return base;
+    if(v){
+      const d=JSON.parse(v);
+      // Always merge DEFAULT_QUESTIONS in case some are missing
+      Object.entries(DEFAULT_QUESTIONS).forEach(([lvl,mats])=>{
+        if(!d[lvl])d[lvl]={};
+        Object.entries(mats).forEach(([mat,diffs])=>{
+          if(!d[lvl][mat])d[lvl][mat]={};
+          Object.entries(diffs).forEach(([diff,qs])=>{
+            if(!d[lvl][mat][diff]||!d[lvl][mat][diff].length)d[lvl][mat][diff]=qs;
+          });
+        });
+      });
+      return d;
+    }
+  }catch(e){}
+  // No localStorage — use defaults
+  return JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
 })();
 let groupes=loadLS('qc_groupes',{});
 function saveAll(){
@@ -561,8 +560,9 @@ function saveAll(){
     localStorage.setItem('qc_questions',JSON.stringify(questions));
     localStorage.setItem('qc_groupes',JSON.stringify(groupes));
   }catch(e){ console.error('localStorage error:', e); }
-  fbSync('questions', questions);
-  fbSync('eleves', eleves);
+  // Use PATCH to merge — each prof only updates their own questions
+  fbMerge('questions', questions);
+  fbMerge('eleves', eleves);
 }
 
 // ── PAGES ─────────────────────────────────────────────────────────────────────
@@ -676,7 +676,7 @@ function addQuestion(){
   questions[curQLvl][curMat][df].push({question:q,choices:[a,b,c,d],correct:ok,diff:df,matiere:curMat});
   saveAll();
   ['f-q','f-a','f-b','f-c','f-d'].forEach(id=>document.getElementById(id).value='');
-  renderQList();renderStats();toast('✅ Question ajoutée !');
+  renderQList();renderStats();toast('✅ Question ajoutée et synchronisée !');
 }
 function delQ(i){questions[curQLvl][curMat][curDif].splice(i,1);saveAll();renderQList();renderStats();}
 function renderQList(){
@@ -1063,28 +1063,47 @@ function showResults(){
 }
 
 // ── FIREBASE SYNC ────────────────────────────────────────────────────────────
-// Firebase REST API — no module needed
+// Firebase REST API
 const FB_URL = 'https://quizz-culture-ge-default-rtdb.europe-west1.firebasedatabase.app';
+
 function fbSync(path, data){
-  try{
-    fetch(FB_URL+'/'+path+'.json', {
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    }).then(()=>{
+  if(!data) return;
+  fetch(FB_URL+'/'+path+'.json', {
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  }).then(r=>{
+    if(r.ok){
       const dot=document.getElementById('fb-dot');
       if(dot){dot.style.background='#2ecc71';dot.style.boxShadow='0 0 6px #2ecc71';}
-    }).catch(()=>{
-      const dot=document.getElementById('fb-dot');
-      if(dot){dot.style.background='#e74c3c';dot.style.boxShadow='none';}
-    });
-  }catch(e){}
+    }
+  }).catch(err=>{
+    console.warn('Firebase sync error:', err);
+    const dot=document.getElementById('fb-dot');
+    if(dot){dot.style.background='#e74c3c';dot.style.boxShadow='none';}
+  });
 }
+
+function fbMerge(path, data){
+  // PATCH merges data instead of replacing
+  if(!data) return;
+  fetch(FB_URL+'/'+path+'.json', {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  }).then(r=>{
+    if(r.ok){
+      const dot=document.getElementById('fb-dot');
+      if(dot){dot.style.background='#2ecc71';dot.style.boxShadow='0 0 6px #2ecc71';}
+    }
+  }).catch(err=>console.warn('Firebase merge error:', err));
+}
+
 function fbLoad(path, cb){
   fetch(FB_URL+'/'+path+'.json')
     .then(r=>r.json())
-    .then(d=>{ if(d) cb(d); })
-    .catch(()=>{});
+    .then(d=>{ if(d && d !== null) cb(d); })
+    .catch(err=>console.warn('Firebase load error:', err));
 }
 function syncGameState(){
   const q = gameQs[qIdx]||null;
@@ -1115,16 +1134,36 @@ renderEleves();
 renderQList();
 renderStats();
 
-// Load from Firebase on startup
+// Sync on startup
 setTimeout(()=>{
+  // Push local questions to Firebase (PATCH = merge, won't erase other profs)
+  fbMerge('questions', questions);
+  fbMerge('eleves', eleves);
+  
+  // Load ALL questions from Firebase (includes other profs)
   fbLoad('questions', d=>{
-    if(d && Object.keys(d).some(k=>Object.keys(d[k]||{}).length>0)){
-      questions=d;
+    if(!d) return;
+    let changed = false;
+    Object.entries(d).forEach(([lvl,mats])=>{
+      if(!questions[lvl])questions[lvl]={};
+      Object.entries(mats||{}).forEach(([mat,diffs])=>{
+        if(!questions[lvl][mat])questions[lvl][mat]={};
+        Object.entries(diffs||{}).forEach(([diff,qs])=>{
+          if(qs && qs.length && (!questions[lvl][mat][diff] || !questions[lvl][mat][diff].length)){
+            questions[lvl][mat][diff]=qs;
+            changed = true;
+          }
+        });
+      });
+    });
+    if(changed){
       localStorage.setItem('qc_questions',JSON.stringify(questions));
       renderQList();renderStats();
-      toast('✅ Questions chargées depuis Firebase !');
+      toast('✅ Questions synchronisées !');
     }
   });
+  
+  // Load eleves
   fbLoad('eleves', d=>{
     if(d && Object.keys(d).some(k=>(d[k]||[]).length>0)){
       eleves=d;
@@ -1132,7 +1171,7 @@ setTimeout(()=>{
       renderEleves();
     }
   });
-}, 500);
+}, 800);
 </script>
 
 <!-- ══ PHOTO IMPORT MODAL ══ -->
