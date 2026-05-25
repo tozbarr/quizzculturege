@@ -1114,6 +1114,7 @@ function startGame(){
   document.getElementById('g-mat').style.display='none';
   renderScores();
   showPage('page-game');
+  syncGameState();
   toast('🚀 Partie lancée !');
 }
 
@@ -1393,7 +1394,12 @@ function syncGameState(){
     streak, bestStreak, timerSec, themes,
     ts: Date.now()
   };
-  fbSync('gameState', state);
+  // Use PUT for reliable real-time sync to écran
+  fetch(FB_URL+'/gameState.json', {
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(state)
+  }).catch(()=>{});
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
@@ -1421,10 +1427,22 @@ if(IS_ECRAN) {
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
   
   // Listen to Firebase for game state
+  let lastTs = 0;
   function startEcranListener() {
-    fbLoad('gameState', handleEcranState);
-    // Poll every 500ms for real-time updates
-    setInterval(() => fbLoad('gameState', handleEcranState), 500);
+    // Use Firebase REST streaming for real-time updates
+    function poll() {
+      fetch(FB_URL+'/gameState.json')
+        .then(r=>r.json())
+        .then(d=>{
+          if(d && d.ts && d.ts !== lastTs){
+            lastTs = d.ts;
+            handleEcranState(d);
+          }
+        })
+        .catch(()=>{})
+        .finally(()=>setTimeout(poll, 300));
+    }
+    poll();
   }
   
   function handleEcranState(s) {
