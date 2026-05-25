@@ -13,12 +13,12 @@
   --easy:#2ecc71;--medium:#f39c12;--hard:#e74c3c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Exo 2',sans-serif;background:var(--night);color:var(--white);min-height:100vh}
+html,html,body{height:100%}body{height:100%;width:100%}body{font-family:'Exo 2',sans-serif;background:var(--night);color:var(--white);min-height:100vh}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -5%,#005080,transparent);pointer-events:none;z-index:0}
 
 /* ── PAGES ── */
-.page{display:none;position:relative;z-index:1;min-height:100vh;padding:1.2rem}
-.page.active{display:block}
+.page{display:none;position:relative;z-index:1;min-height:100vh;padding:1.2rem;width:100%;box-sizing:border-box}
+.page.active{display:block!important;width:100%!important}
 
 /* ── NAV ── */
 .nav{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1.2rem;background:var(--night2);border-radius:12px;border:1px solid rgba(135,206,235,.15);margin-bottom:1.2rem;flex-wrap:wrap;gap:.6rem;max-width:960px;margin-left:auto;margin-right:auto}
@@ -115,7 +115,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ══════ GAME SCREEN ══════ */
 #page-game{padding:0;background:var(--night)}
-.game-layout{display:flex;flex-direction:column;height:100vh;max-height:100vh;overflow:hidden}
+.game-layout{display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
 
 .game-hdr{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;background:var(--night2);border-bottom:1px solid rgba(135,206,235,.15);flex-shrink:0;flex-wrap:wrap;gap:.4rem}
 .gh-left{display:flex;align-items:center;gap:.6rem}
