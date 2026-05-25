@@ -556,9 +556,11 @@ let questions=(()=>{
 })();
 let groupes=loadLS('qc_groupes',{});
 function saveAll(){
-  localStorage.setItem('qc_eleves',JSON.stringify(eleves));
-  localStorage.setItem('qc_questions',JSON.stringify(questions));
-  localStorage.setItem('qc_groupes',JSON.stringify(groupes));
+  try{
+    localStorage.setItem('qc_eleves',JSON.stringify(eleves));
+    localStorage.setItem('qc_questions',JSON.stringify(questions));
+    localStorage.setItem('qc_groupes',JSON.stringify(groupes));
+  }catch(e){ console.error('localStorage error:', e); }
   fbSync('questions', questions);
   fbSync('eleves', eleves);
 }
@@ -715,11 +717,29 @@ function importData(e){
     try{
       const d=JSON.parse(ev.target.result);
       if(d.eleves)eleves=d.eleves;
-      if(d.questions)questions=d.questions;
+      if(d.questions){
+        // Merge questions instead of replacing
+        Object.entries(d.questions).forEach(([lvl,mats])=>{
+          if(!questions[lvl])questions[lvl]={};
+          Object.entries(mats).forEach(([mat,diffs])=>{
+            if(!questions[lvl][mat])questions[lvl][mat]={};
+            Object.entries(diffs).forEach(([diff,qs])=>{
+              questions[lvl][mat][diff]=qs;
+            });
+          });
+        });
+      }
       if(d.groupes)groupes=d.groupes;
-      saveAll();renderEleves();renderQList();renderStats();
+      // Force save to localStorage
+      localStorage.setItem('qc_eleves',JSON.stringify(eleves));
+      localStorage.setItem('qc_questions',JSON.stringify(questions));
+      localStorage.setItem('qc_groupes',JSON.stringify(groupes));
+      // Sync to Firebase
+      fbSync('questions', questions);
+      fbSync('eleves', eleves);
+      renderEleves();renderQList();renderStats();
       toast('📂 Import réussi !');
-    }catch{toast('❌ Fichier invalide');}
+    }catch(err){toast('❌ Fichier invalide');}
   };
   r.readAsText(f);
 }
