@@ -1496,6 +1496,22 @@ if(IS_ECRAN){
   }
 }
 
+// ═══ RESET TOURNAMENT ═══
+function resetTournament(){
+  tournament.groupResults=[];
+  tournament.demiGroups=[];
+  tournament.demiResults=[];
+  tournament.qualifiedM2=[];
+  tournament.qualifiedM3=[];
+  tournament.champion=null;
+  tournament.absents={};
+  gsGrpIdx=0;gsManV='m1';
+  qualifiedPlayers=[];buzzed=null;active=false;
+  scores={};players=[];gameQs=[];qIdx=-1;
+  loadGsGroupes();updateGsInfo();
+  toast('🔄 Tournoi réinitialisé !');
+}
+
 // ═══ NEXT PHASE ═══
 function goNextPhase(){
   if(gsLvlV==='finale'){
