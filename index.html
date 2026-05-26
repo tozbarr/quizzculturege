@@ -1508,70 +1508,98 @@ if(IS_ECRAN){
 
 // ═══ M2 — TOUR PAR TOUR ═══
 function renderM2ChoosePhase(){
-  const player=players[m2PlayerIdx];
-  if(!player){m2EndAllPlayers();return;}
   m2Phase='choose';
   curTheme=null;
   gameQs=[];qIdx=-1;
   timerSec=60;stopTimer();updateTimerDisp();
   
-  document.getElementById('gh-qcnt').textContent=`${player} — choisit son thème`;
+  document.getElementById('gh-qcnt').textContent='M2 — Choisir un joueur';
+  document.getElementById('gh-pts').textContent='Tour par tour';
   document.getElementById('timer-box').classList.remove('show');
-  document.getElementById('themes-box').classList.add('show');
+  document.getElementById('themes-box').classList.remove('show');
   document.getElementById('btn-ok').disabled=true;
   document.getElementById('btn-ko').disabled=true;
   document.getElementById('btn-next').disabled=true;
   document.getElementById('btn-rev').disabled=true;
   document.getElementById('buzz-banner-big').classList.remove('show');
-  document.getElementById('bbb-name').textContent=player;
-  document.getElementById('buzz-banner-big').classList.add('show');
-  
-  // Show choose screen
-  document.getElementById('g-qtxt').innerHTML=`
-    <div style="font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:3px;color:var(--amber);margin-bottom:.5rem">
-      🎯 ${player} — Choisissez un thème !
-    </div>`;
-  document.getElementById('g-choices').innerHTML='';
   document.getElementById('g-diff').style.display='none';
   document.getElementById('g-mat').style.display='none';
   
-  // Re-render themes (keep used ones barred)
-  renderThemes();
+  // Show player selection grid in question zone
+  document.getElementById('g-qtxt').innerHTML=`
+    <div style="font-family:'Bebas Neue',cursive;font-size:1.2rem;letter-spacing:3px;color:var(--sky);margin-bottom:.7rem;text-align:center">
+      🎯 MANCHE 2 — Qui joue ?
+    </div>`;
   
-  // Update scores display
+  // Show players as clickable cards in choices area
+  document.getElementById('g-choices').innerHTML=players.map((p,i)=>{
+    const sc=m2PlayerScores[p];
+    const done=typeof sc!=='undefined'&&i<m2PlayerIdx||(typeof sc!=='undefined'&&sc!==undefined&&Object.keys(m2PlayerScores).includes(p)&&i<m2PlayerIdx);
+    const isDone=i<m2PlayerIdx;
+    const isNext=!isDone;
+    return `<div class="qchoice${isDone?'':''}" 
+      onclick="${isDone?'':'m2SelectPlayer('+i+')'}"
+      style="cursor:${isDone?'default':'pointer'};opacity:${isDone?'.5':'1'};border-color:${isDone?'var(--green)':'rgba(135,206,235,.3)'};flex-direction:column;align-items:center;justify-content:center;padding:1rem;gap:.3rem;${isDone?'background:rgba(46,204,113,.08)':''}">
+      <div style="font-family:'Bebas Neue',cursive;font-size:1.3rem;color:${isDone?'var(--green)':'var(--white)'}">${p}</div>
+      ${isDone?`<div style="font-size:.8rem;color:var(--green);font-weight:700">✅ ${m2PlayerScores[p]} pts</div>`:`<div style="font-size:.75rem;color:var(--muted)">Appuyer pour jouer</div>`}
+    </div>`;
+  }).join('');
+  
+  renderM2Scores();
+  syncState();
+}
+
+function m2SelectPlayer(idx){
+  // Can only select players who haven't played yet
+  if(idx<m2PlayerIdx)return; // already played
+  m2PlayerIdx=idx;
+  const player=players[idx];
+  
+  // Show theme selection for this player
+  document.getElementById('gh-qcnt').textContent=player+' — choisit son thème';
+  document.getElementById('themes-box').classList.add('show');
+  document.getElementById('buzz-banner-big').classList.add('show');
+  document.getElementById('bbb-name').textContent=player;
+  
+  document.getElementById('g-qtxt').innerHTML=`
+    <div style="text-align:center;padding:.5rem">
+      <div style="font-family:'Bebas Neue',cursive;font-size:1.8rem;letter-spacing:3px;color:var(--amber)">${player}</div>
+      <div style="font-size:.85rem;color:var(--muted);margin-top:.3rem">Choisissez votre thème</div>
+    </div>`;
+  document.getElementById('g-choices').innerHTML='';
+  
+  renderThemes();
   renderM2Scores();
   syncState();
 }
 
 function renderM2Scores(){
-  // Show all players with their scores, highlight current
-  const player=players[m2PlayerIdx];
   const rc=document.getElementById('scores-right');
-  rc.innerHTML=`<div class="scores-cards-r" style="grid-template-columns:repeat(${Math.min(players.length,4)},1fr)">`+
-    players.map((p,i)=>{
-      const sc=m2PlayerScores[p]||0;
-      const done=i<m2PlayerIdx;
-      const current=i===m2PlayerIdx;
-      return `<div class="scr-card${current?' buzzed':''}${done?' winner':''}">
-        <div class="scr-name">${p}</div>
-        <div class="scr-val" style="color:${current?'var(--amber)':done?'var(--green)':'var(--sky)'}">${done||current?sc:'—'}</div>
-        <div class="scr-tgt">${done?'✅ terminé':current?'▶ en jeu':'en attente'}</div>
-      </div>`;
-    }).join('')+'</div>';
-  
   const lc=document.getElementById('scores-left');
-  lc.innerHTML=`<div class="qpuc-list">`+
+  rc.innerHTML='<div class="scores-cards-r" style="grid-template-columns:repeat('+Math.min(players.length,4)+',1fr)">'+
+    players.map((p,i)=>{
+      const sc=m2PlayerScores[p];
+      const done=i<m2PlayerIdx;
+      const current=i===m2PlayerIdx&&m2Phase==='play';
+      return '<div class="scr-card'+(current?' buzzed':'')+(done?' winner':'')+'">'+
+        '<div class="scr-name">'+p+'</div>'+
+        '<div class="scr-val" style="color:'+(current?'var(--amber)':done?'var(--green)':'var(--sky)')+'">'+
+        (done||current?sc:'—')+'</div>'+
+        '<div class="scr-tgt">'+(done?'✅ fini':current?'▶ joue':'attente')+'</div>'+
+        '</div>';
+    }).join('')+'</div>';
+  lc.innerHTML='<div class="qpuc-list">'+
     players.map((p,i)=>{
       const sc=m2PlayerScores[p]||0;
       const done=i<m2PlayerIdx;
-      const current=i===m2PlayerIdx;
-      return `<div class="qpuc-row${current?' buzzed':''}${done?' qualified':''}">
-        <div class="qr-top">
-          <span class="qr-name">${p}${done?' ✅':current?' ▶':''}</span>
-          <span class="qr-score" style="color:${current?'var(--amber)':'var(--sky)'}">${done||current?sc:'—'}</span>
-        </div>
-        ${(done||current)?`<div class="qr-bar-wrap"><div class="qr-bar" style="width:${Math.min(sc/10*100,100)}%"></div></div>`:''}
-      </div>`;
+      const current=i===m2PlayerIdx&&m2Phase==='play';
+      return '<div class="qpuc-row'+(current?' buzzed':'')+(done?' qualified':'')+'">'+
+        '<div class="qr-top">'+
+        '<span class="qr-name">'+p+(done?' ✅':current?' ▶':'')+'</span>'+
+        '<span class="qr-score" style="color:'+(current?'var(--amber)':'var(--sky)')+'">'+
+        (done||current?sc:'—')+'</span></div>'+
+        (done||current?'<div class="qr-bar-wrap"><div class="qr-bar" style="width:'+Math.min((sc||0)/10*100,100)+'%"></div></div>':'')+
+        '</div>';
     }).join('')+'</div>';
 }
 
@@ -1687,34 +1715,43 @@ function m2EndPlayer(){
   document.getElementById('g-mat').style.display='none';
   
   scores[player]=sc; // update main scores
+  
+  // Mark player as played by incrementing idx
+  m2PlayerIdx++;
+  
+  // Count how many played
+  const playedCount=m2PlayerIdx;
   renderM2Scores();
   syncState();
   
-  // Show next player button
-  const nextPlayer=players[m2PlayerIdx+1];
-  if(nextPlayer){
-    toast(`${player} : ${sc} pts — Suivant : ${nextPlayer}`);
+  if(playedCount>=players.length){
+    toast(player+' : '+sc+' pts — Fin de la M2 !');
+    setTimeout(()=>m2EndAllPlayers(),1500);
+  } else {
+    toast(player+' : '+sc+' pts — Joueur suivant !');
     document.getElementById('btn-next').disabled=false;
     document.getElementById('btn-next').onclick=()=>m2NextPlayer();
-  } else {
-    toast(`${player} : ${sc} pts — Fin de la M2 !`);
-    setTimeout(()=>showResults(),1500);
   }
 }
 
 function m2NextPlayer(){
-  m2PlayerIdx++;
-  document.getElementById('btn-next').onclick=()=>m2NextQ();
-  if(m2PlayerIdx>=players.length){
+  // Mark current player as done, go back to choose screen
+  const doneCount=Object.keys(m2PlayerScores).filter(p=>m2PlayerScores[p]!==undefined).length;
+  
+  // Find next unplayed player
+  const nextIdx=players.findIndex((p,i)=>i>m2PlayerIdx&&m2PlayerScores[p]===undefined);
+  
+  if(doneCount>=players.length){
     m2EndAllPlayers();
     return;
   }
+  
+  // Go back to selection screen
+  document.getElementById('btn-next').onclick=()=>m2NextQ();
   renderM2ChoosePhase();
 }
 
 function m2EndAllPlayers(){
-  // All players done — show results
-  // Update scores with M2 scores
   players.forEach(p=>scores[p]=m2PlayerScores[p]||0);
   showResults();
 }
