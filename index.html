@@ -1005,10 +1005,7 @@ let streak=0,bestStreak=0,curTheme=null;
 let timerSec=60,timerIv=null;
 let qualifiedPlayers=[];
 let gameMode='anim';
-// M2 specific state
-let m2PlayerIdx=0;       // current player index in M2
-let m2PlayerScores={};   // scores per player in M2
-let m2Phase='choose';    // 'choose' | 'play' | 'result'
+// M2 state managed in M2 functions block
 let m2Themes=[]; // Fixed themes for whole M2 round
 let usedThemes=new Set(); // Themes already chosen
 
@@ -1109,7 +1106,7 @@ function renderThemes(){
 }
 function pickTheme(t,el){
   if(usedThemes.has(t))return;
-  if(gsManV==='m2'){m2PickTheme(t,el);return;}
+  if(gsManV==='m2'){m2ThemePicked(t);return;}
   curTheme=t;
   usedThemes.add(t);
   gameQs=buildPool(gsLvlV,gsManV,t);qIdx=-1;streak=0;bestStreak=0;resetStreakUI();
@@ -1175,7 +1172,7 @@ function buzz(p){
 
 // ═══ NEXT QUESTION ═══
 function nextQ(){
-  if(gsManV==='m2'){m2NextQ();return;}
+  if(gsManV==='m2'){m2NextQuestion();return;}
   if(gsManV==='m2'&&!curTheme){toast('⚠️ Choisissez un thème !');return;}
   qIdx++;
   if(qIdx>=gameQs.length){toast('⚠️ Plus de questions !');return;}
@@ -1207,7 +1204,7 @@ function revealAns(){
 
 // ═══ MARK OK/KO ═══
 function markOK(){
-  if(gsManV==='m2'){m2MarkOK();return;}
+  if(gsManV==='m2'){m2ValidateOK();return;}
   if(!buzzed)return;
   scores[buzzed]=(scores[buzzed]||0)+1;
   const target=TARGET_PTS[gsManV]||9;
@@ -1255,7 +1252,7 @@ function markOK(){
   renderScores();syncState();
 }
 function markKO(){
-  if(gsManV==='m2'){m2MarkKO();return;}
+  if(gsManV==='m2'){m2ValidateKO();return;}
   if(!buzzed)return;
   if(gsManV==='m2'){streak=0;updateStreakUI(false);}
   const prev=buzzed;buzzed=null;active=true;
@@ -1277,7 +1274,7 @@ function resetStreakUI(){streak=0;bestStreak=0;for(let i=0;i<4;i++){const d=docu
 function startTimer(){
   if(timerIv)return;
   document.getElementById('tbtn-go').style.display='none';document.getElementById('tbtn-stop').style.display='';
-  timerIv=setInterval(()=>{timerSec--;updateTimerDisp();syncState();if(timerSec<=0){stopTimer();if(gsManV==='m2'&&m2Phase==='play'){m2EndPlayer();}else{toast('⏰ Temps écoulé !');}}},1000);
+  timerIv=setInterval(()=>{timerSec--;updateTimerDisp();syncState();if(timerSec<=0){stopTimer();if(gsManV==='m2'&&m2Phase==='play'){m2EndCurrentPlayer();}else{toast('⏰ Temps écoulé !');}}},1000);
 }
 function stopTimer(){clearInterval(timerIv);timerIv=null;document.getElementById('tbtn-go').style.display='';document.getElementById('tbtn-stop').style.display='none';}
 function resetTimer(){stopTimer();timerSec=60;updateTimerDisp();syncState();}
@@ -1507,253 +1504,294 @@ if(IS_ECRAN){
 }
 
 // ═══ M2 — TOUR PAR TOUR ═══
-function renderM2ChoosePhase(){
-  m2Phase='choose';
-  curTheme=null;
-  gameQs=[];qIdx=-1;
+// State
+let m2Players=[];         // 4 joueurs
+let m2Scores={};          // scores finaux
+let m2CurrentPlayer=null; // joueur en cours
+let m2Phase='select';     // select | theme | play | playerresult
+let m2QIdx=-1;
+let m2QPool=[];
+let m2QRight=0;           // bonnes réponses du joueur courant
+let m2Done=[];            // joueurs ayant joué
+
+function startM2(){
+  m2Players=[...players];
+  m2Scores={};m2Players.forEach(p=>m2Scores[p]=0);
+  m2CurrentPlayer=null;
+  m2Phase='select';
+  m2Done=[];
   timerSec=60;stopTimer();updateTimerDisp();
-  
-  document.getElementById('gh-qcnt').textContent='M2 — Choisir un joueur';
+  setupThemes(true);
+  renderM2();
+  syncState();
+}
+
+function renderM2(){
+  // Header
+  document.getElementById('gh-manche').textContent='MANCHE 2';
   document.getElementById('gh-pts').textContent='Tour par tour';
+  document.getElementById('gh-qcnt').textContent=m2Done.length+'/'+m2Players.length+' joués';
+  
+  if(m2Phase==='select') renderM2Select();
+  else if(m2Phase==='theme') renderM2Theme();
+  else if(m2Phase==='play') renderM2Play();
+  else if(m2Phase==='playerresult') renderM2PlayerResult();
+  
+  renderM2ScorePanel();
+  syncState();
+}
+
+function renderM2Select(){
+  // Hide game controls
   document.getElementById('timer-box').classList.remove('show');
   document.getElementById('themes-box').classList.remove('show');
+  document.getElementById('streak-box').classList.remove('show');
+  document.getElementById('buzz-banner-big').classList.remove('show');
   document.getElementById('btn-ok').disabled=true;
   document.getElementById('btn-ko').disabled=true;
   document.getElementById('btn-next').disabled=true;
   document.getElementById('btn-rev').disabled=true;
-  document.getElementById('buzz-banner-big').classList.remove('show');
   document.getElementById('g-diff').style.display='none';
   document.getElementById('g-mat').style.display='none';
   
-  // Show player selection grid in question zone
-  document.getElementById('g-qtxt').innerHTML=`
-    <div style="font-family:'Bebas Neue',cursive;font-size:1.2rem;letter-spacing:3px;color:var(--sky);margin-bottom:.7rem;text-align:center">
-      🎯 MANCHE 2 — Qui joue ?
-    </div>`;
+  // Show player grid
+  document.getElementById('g-qtxt').innerHTML=
+    '<div style="font-family:Bebas Neue,cursive;font-size:1.4rem;letter-spacing:3px;color:var(--sky);text-align:center;margin-bottom:.5rem">QUI JOUE ?</div>';
   
-  // Show players as clickable cards in choices area
-  document.getElementById('g-choices').innerHTML=players.map((p,i)=>{
-    const sc=m2PlayerScores[p];
-    const done=typeof sc!=='undefined'&&i<m2PlayerIdx||(typeof sc!=='undefined'&&sc!==undefined&&Object.keys(m2PlayerScores).includes(p)&&i<m2PlayerIdx);
-    const isDone=i<m2PlayerIdx;
-    const isNext=!isDone;
-    return `<div class="qchoice${isDone?'':''}" 
-      onclick="${isDone?'':'m2SelectPlayer('+i+')'}"
-      style="cursor:${isDone?'default':'pointer'};opacity:${isDone?'.5':'1'};border-color:${isDone?'var(--green)':'rgba(135,206,235,.3)'};flex-direction:column;align-items:center;justify-content:center;padding:1rem;gap:.3rem;${isDone?'background:rgba(46,204,113,.08)':''}">
-      <div style="font-family:'Bebas Neue',cursive;font-size:1.3rem;color:${isDone?'var(--green)':'var(--white)'}">${p}</div>
-      ${isDone?`<div style="font-size:.8rem;color:var(--green);font-weight:700">✅ ${m2PlayerScores[p]} pts</div>`:`<div style="font-size:.75rem;color:var(--muted)">Appuyer pour jouer</div>`}
-    </div>`;
+  document.getElementById('g-choices').innerHTML=m2Players.map((p,i)=>{
+    const done=m2Done.includes(p);
+    const sc=m2Scores[p];
+    return '<div class="qchoice" data-m2p="'+i+'" style="flex-direction:column;align-items:center;justify-content:center;padding:1.2rem;cursor:'+(done?'default':'pointer')+';opacity:'+(done?'.45':'1')+';border-color:'+(done?'var(--green)':'rgba(135,206,235,.3)')+'"><div style="font-family:Bebas Neue,cursive;font-size:1.4rem;color:'+(done?'var(--green)':'var(--white)')+'">'+p+'</div>'+(done?'<div style="color:var(--green);font-size:.8rem;font-weight:700">✅ '+sc+' / 4</div>':'<div style="color:var(--muted);font-size:.75rem">Appuyer pour jouer</div>')+'</div>';
   }).join('');
+  document.querySelectorAll('[data-m2p]').forEach(el=>{
+    const p=m2Players[parseInt(el.getAttribute('data-m2p'))];
+    if(!m2Done.includes(p))el.onclick=()=>m2SelectPlayer(p);
+  });
+}
+
+function m2SelectPlayer(p){
+  if(m2Done.includes(p))return;
+  m2CurrentPlayer=p;
+  m2Phase='theme';
   
-  renderM2Scores();
+  document.getElementById('buzz-banner-big').classList.add('show');
+  document.getElementById('bbb-name').textContent=p;
+  
+  renderM2Theme();
+  renderM2ScorePanel();
   syncState();
 }
 
-function m2SelectPlayer(idx){
-  // Can only select players who haven't played yet
-  if(idx<m2PlayerIdx)return; // already played
-  m2PlayerIdx=idx;
-  const player=players[idx];
-  
-  // Show theme selection for this player
-  document.getElementById('gh-qcnt').textContent=player+' — choisit son thème';
+function renderM2Theme(){
+  document.getElementById('timer-box').classList.remove('show');
   document.getElementById('themes-box').classList.add('show');
-  document.getElementById('buzz-banner-big').classList.add('show');
-  document.getElementById('bbb-name').textContent=player;
+  document.getElementById('btn-ok').disabled=true;
+  document.getElementById('btn-ko').disabled=true;
+  document.getElementById('btn-next').disabled=true;
+  document.getElementById('btn-rev').disabled=true;
+  document.getElementById('g-diff').style.display='none';
+  document.getElementById('g-mat').style.display='none';
   
-  document.getElementById('g-qtxt').innerHTML=`
-    <div style="text-align:center;padding:.5rem">
-      <div style="font-family:'Bebas Neue',cursive;font-size:1.8rem;letter-spacing:3px;color:var(--amber)">${player}</div>
-      <div style="font-size:.85rem;color:var(--muted);margin-top:.3rem">Choisissez votre thème</div>
-    </div>`;
+  document.getElementById('g-qtxt').innerHTML=
+    '<div style="text-align:center"><div style="font-family:Bebas Neue,cursive;font-size:1.8rem;letter-spacing:3px;color:var(--amber)">'+m2CurrentPlayer+'</div>'+
+    '<div style="color:var(--muted);font-size:.85rem;margin-top:.3rem">Choisissez un thème</div></div>';
   document.getElementById('g-choices').innerHTML='';
   
   renderThemes();
-  renderM2Scores();
-  syncState();
 }
 
-function renderM2Scores(){
-  const rc=document.getElementById('scores-right');
-  const lc=document.getElementById('scores-left');
-  rc.innerHTML='<div class="scores-cards-r" style="grid-template-columns:repeat('+Math.min(players.length,4)+',1fr)">'+
-    players.map((p,i)=>{
-      const sc=m2PlayerScores[p];
-      const done=i<m2PlayerIdx;
-      const current=i===m2PlayerIdx&&m2Phase==='play';
-      return '<div class="scr-card'+(current?' buzzed':'')+(done?' winner':'')+'">'+
-        '<div class="scr-name">'+p+'</div>'+
-        '<div class="scr-val" style="color:'+(current?'var(--amber)':done?'var(--green)':'var(--sky)')+'">'+
-        (done||current?sc:'—')+'</div>'+
-        '<div class="scr-tgt">'+(done?'✅ fini':current?'▶ joue':'attente')+'</div>'+
-        '</div>';
-    }).join('')+'</div>';
-  lc.innerHTML='<div class="qpuc-list">'+
-    players.map((p,i)=>{
-      const sc=m2PlayerScores[p]||0;
-      const done=i<m2PlayerIdx;
-      const current=i===m2PlayerIdx&&m2Phase==='play';
-      return '<div class="qpuc-row'+(current?' buzzed':'')+(done?' qualified':'')+'">'+
-        '<div class="qr-top">'+
-        '<span class="qr-name">'+p+(done?' ✅':current?' ▶':'')+'</span>'+
-        '<span class="qr-score" style="color:'+(current?'var(--amber)':'var(--sky)')+'">'+
-        (done||current?sc:'—')+'</span></div>'+
-        (done||current?'<div class="qr-bar-wrap"><div class="qr-bar" style="width:'+Math.min((sc||0)/10*100,100)+'%"></div></div>':'')+
-        '</div>';
-    }).join('')+'</div>';
-}
-
-function m2PickTheme(t,el){
+function m2ThemePicked(t){
   if(usedThemes.has(t))return;
   curTheme=t;
   usedThemes.add(t);
   renderThemes();
   
-  // Build pool for this theme (medium questions only)
-  gameQs=buildPool(gsLvlV,'m2',t);
-  qIdx=-1;
-  streak=0;m2PlayerScores[players[m2PlayerIdx]]=0;
+  // Build question pool (medium only)
+  m2QPool=buildPool(gsLvlV,'m2',t);
+  m2QIdx=-1;
+  m2QRight=0;
   m2Phase='play';
   
   document.getElementById('themes-box').classList.remove('show');
   document.getElementById('timer-box').classList.add('show');
-  document.getElementById('buzz-banner-big').classList.remove('show');
+  document.getElementById('btn-next').disabled=false;
+  document.getElementById('btn-ok').disabled=true;
+  document.getElementById('btn-ko').disabled=true;
+  document.getElementById('btn-rev').disabled=true;
   
-  // Start timer then load first question automatically
+  // Show ready screen
+  document.getElementById('g-qtxt').innerHTML=
+    '<div style="text-align:center;font-family:Bebas Neue,cursive;font-size:1.5rem;letter-spacing:3px;color:var(--sky)">Thème : '+t+'<br><span style="color:var(--muted);font-size:1rem">▶ Suivant pour démarrer</span></div>';
+  document.getElementById('g-choices').innerHTML='';
+  document.getElementById('g-diff').style.display='none';
+  document.getElementById('g-mat').style.display='none';
+  
+  // Next will trigger first question + timer
+  document.getElementById('btn-next').onclick=function(){
+    if(!timerIv)startTimer();
+    m2NextQuestion();
+    document.getElementById('btn-next').onclick=function(){m2NextQuestion();};
+  };
+  
   timerSec=60;updateTimerDisp();
-  startTimer();
-  
-  // Load first question immediately
-  m2NextQ();
-  
-  toast('🎯 '+t);
+  renderM2ScorePanel();
   syncState();
 }
 
-function m2NextQ(){
-  // Called when timer runs out OR manually
+function m2NextQuestion(){
   if(m2Phase!=='play')return;
-  qIdx++;
-  if(qIdx>=gameQs.length){m2EndPlayer();return;}
+  m2QIdx++;
   
-  buzzed=null;active=true;revealed=false;
-  const q=gameQs[qIdx];
-  const player=players[m2PlayerIdx];
+  if(m2QIdx>=m2QPool.length||timerSec<=0){
+    m2EndCurrentPlayer();
+    return;
+  }
   
-  document.getElementById('gh-qcnt').textContent=`${player} — Q${qIdx+1} — ${curTheme}`;
-  document.getElementById('g-prog').style.width=`${((qIdx+1)/Math.min(gameQs.length,10))*100}%`;
+  const q=m2QPool[m2QIdx];
+  revealed=false;
+  
+  document.getElementById('gh-qcnt').textContent=m2CurrentPlayer+' — Q'+(m2QIdx+1)+' — '+curTheme;
   
   const dt=document.getElementById('g-diff');dt.style.display='';
   dt.className='diff-tag medium';dt.textContent='Moyen';
   const mt=document.getElementById('g-mat');mt.style.display='';mt.textContent=curTheme;
   
-  document.getElementById('g-qtxt').innerHTML=`<div class="q-text-big">${q.question}</div>`;
+  document.getElementById('g-qtxt').innerHTML='<div class="q-text-big">'+q.question+'</div>';
   document.getElementById('g-choices').innerHTML=['A','B','C','D'].map((l,i)=>
-    `<div class="qchoice"><span class="cl">${l}</span><span>${q.choices[i]}</span></div>`).join('');
+    '<div class="qchoice"><span class="cl">'+l+'</span><span>'+q.choices[i]+'</span></div>').join('');
   
   document.getElementById('anim-qtxt').textContent=q.question;
   document.getElementById('anim-choices').innerHTML=['A','B','C','D'].map((l,i)=>
-    `<div class="anim-choice${i===q.correct?' ok':''}"><span class="lbl">${l}</span><span>${q.choices[i]}${i===q.correct?' ✓':''}</span></div>`).join('');
+    '<div class="anim-choice'+(i===q.correct?' ok':'')+'"><span class="lbl">'+l+'</span><span>'+q.choices[i]+(i===q.correct?' ✓':'')+'</span></div>').join('');
   
   document.getElementById('btn-ok').disabled=false;
   document.getElementById('btn-ko').disabled=false;
   document.getElementById('btn-rev').disabled=false;
-  document.getElementById('btn-next').disabled=false;
-  document.getElementById('buzz-ind').classList.remove('show');
-  buzzed=players[m2PlayerIdx]; // auto-set current player as buzzed for M2
-  active=true;
-  
-  renderM2Scores();
-  syncState();
-}
-
-function m2MarkOK(){
-  if(m2Phase!=='play')return;
-  m2PlayerScores[players[m2PlayerIdx]]=(m2PlayerScores[players[m2PlayerIdx]]||0)+1;
-  revealAns();
-  document.getElementById('btn-ok').disabled=true;
-  document.getElementById('btn-ko').disabled=true;
-  document.getElementById('btn-next').disabled=false;
-  renderM2Scores();
-  syncState();
-  toast('✅ +1 — ▶ Suivant pour continuer');
-}
-
-function m2MarkKO(){
-  if(m2Phase!=='play')return;
-  revealAns();
-  document.getElementById('btn-ok').disabled=true;
-  document.getElementById('btn-ko').disabled=true;
-  document.getElementById('btn-next').disabled=false;
-  renderM2Scores();
-  syncState();
-  toast('❌ Mauvaise — ▶ Suivant pour continuer');
-}
-
-function m2EndPlayer(){
-  // Timer ran out or no more questions
-  stopTimer();
-  m2Phase='result';
-  const player=players[m2PlayerIdx];
-  const sc=m2PlayerScores[player]||0;
-  
-  document.getElementById('btn-ok').disabled=true;
-  document.getElementById('btn-ko').disabled=true;
   document.getElementById('btn-next').disabled=true;
+  document.getElementById('buzz-banner-big').classList.remove('show');
+  
+  renderM2ScorePanel();
+  syncState();
+}
+
+function m2ValidateOK(){
+  if(m2Phase!=='play')return;
+  m2QRight++;
+  const q=m2QPool[m2QIdx];
+  if(q){
+    document.getElementById('g-choices').innerHTML=['A','B','C','D'].map((l,i)=>
+      '<div class="qchoice'+(i===q.correct?' revealed':'')+'"><span class="cl">'+l+'</span><span>'+q.choices[i]+'</span></div>').join('');
+  }
+  document.getElementById('btn-ok').disabled=true;
+  document.getElementById('btn-ko').disabled=true;
+  document.getElementById('btn-next').disabled=false;
+  document.getElementById('btn-rev').disabled=true;
+  toast('✅ +1 ! ('+m2QRight+' bonne'+(m2QRight>1?'s':'')+')');
+  syncState();
+}
+
+function m2ValidateKO(){
+  if(m2Phase!=='play')return;
+  const q=m2QPool[m2QIdx];
+  if(q){
+    document.getElementById('g-choices').innerHTML=['A','B','C','D'].map((l,i)=>
+      '<div class="qchoice'+(i===q.correct?' revealed':'')+'"><span class="cl">'+l+'</span><span>'+q.choices[i]+'</span></div>').join('');
+  }
+  document.getElementById('btn-ok').disabled=true;
+  document.getElementById('btn-ko').disabled=true;
+  document.getElementById('btn-next').disabled=false;
+  document.getElementById('btn-rev').disabled=true;
+  toast('❌ Mauvaise !');
+  syncState();
+}
+
+function m2EndCurrentPlayer(){
+  stopTimer();
+  m2Phase='playerresult';
+  const p=m2CurrentPlayer;
+  m2Scores[p]=m2QRight;
+  m2Done.push(p);
+  scores[p]=m2QRight;
+  
+  document.getElementById('btn-ok').disabled=true;
+  document.getElementById('btn-ko').disabled=true;
   document.getElementById('btn-rev').disabled=true;
   document.getElementById('timer-box').classList.remove('show');
-  
-  // Show player result
-  document.getElementById('g-qtxt').innerHTML=`
-    <div style="text-align:center;padding:1rem">
-      <div style="font-family:'Bebas Neue',cursive;font-size:2rem;letter-spacing:3px;color:var(--amber)">${player}</div>
-      <div style="font-family:'Bebas Neue',cursive;font-size:4rem;color:var(--sky);line-height:1">${sc}</div>
-      <div style="color:var(--muted);font-size:.85rem">bonne${sc>1?'s':''} réponse${sc>1?'s':''} sur ${Math.min(qIdx+1,10)}</div>
-    </div>`;
-  document.getElementById('g-choices').innerHTML='';
+  document.getElementById('buzz-banner-big').classList.remove('show');
   document.getElementById('g-diff').style.display='none';
   document.getElementById('g-mat').style.display='none';
   
-  scores[player]=sc; // update main scores
+  document.getElementById('g-qtxt').innerHTML=
+    '<div style="text-align:center;padding:1.5rem">'+
+    '<div style="font-family:Bebas Neue,cursive;font-size:2.5rem;letter-spacing:4px;color:var(--amber)">'+p+'</div>'+
+    '<div style="font-family:Bebas Neue,cursive;font-size:5rem;color:var(--sky);line-height:1">'+m2QRight+'</div>'+
+    '<div style="color:var(--muted);font-size:.9rem">bonne'+(m2QRight>1?'s':'')+' réponse'+(m2QRight>1?'s':'')+' / '+(m2QIdx+1)+' question'+(m2QIdx+1>1?'s':'')+' posée'+(m2QIdx+1>1?'s':'')+'</div>'+
+    '</div>';
+  document.getElementById('g-choices').innerHTML='';
   
-  // Mark player as played by incrementing idx
-  m2PlayerIdx++;
+  renderM2ScorePanel();
   
-  // Count how many played
-  const playedCount=m2PlayerIdx;
-  renderM2Scores();
-  syncState();
-  
-  if(playedCount>=players.length){
-    toast(player+' : '+sc+' pts — Fin de la M2 !');
-    setTimeout(()=>m2EndAllPlayers(),1500);
-  } else {
-    toast(player+' : '+sc+' pts — Joueur suivant !');
+  if(m2Done.length>=m2Players.length){
+    // All done
     document.getElementById('btn-next').disabled=false;
-    document.getElementById('btn-next').onclick=()=>m2NextPlayer();
+    document.getElementById('btn-next').onclick=function(){
+      document.getElementById('btn-next').onclick=function(){m2NextQuestion();};
+      m2Finish();
+    };
+    toast('Fin de la M2 ! '+p+' : '+m2QRight+' pts');
+  } else {
+    document.getElementById('btn-next').disabled=false;
+    document.getElementById('btn-next').onclick=function(){
+      document.getElementById('btn-next').onclick=function(){m2NextQuestion();};
+      m2Phase='select';
+      m2CurrentPlayer=null;
+      renderM2Select();
+      renderM2ScorePanel();
+      syncState();
+    };
+    toast(p+' : '+m2QRight+' pts — Joueur suivant !');
   }
+  syncState();
 }
 
-function m2NextPlayer(){
-  // Mark current player as done, go back to choose screen
-  const doneCount=Object.keys(m2PlayerScores).filter(p=>m2PlayerScores[p]!==undefined).length;
-  
-  // Find next unplayed player
-  const nextIdx=players.findIndex((p,i)=>i>m2PlayerIdx&&m2PlayerScores[p]===undefined);
-  
-  if(doneCount>=players.length){
-    m2EndAllPlayers();
-    return;
-  }
-  
-  // Go back to selection screen
-  document.getElementById('btn-next').onclick=()=>m2NextQ();
-  renderM2ChoosePhase();
-}
-
-function m2EndAllPlayers(){
-  players.forEach(p=>scores[p]=m2PlayerScores[p]||0);
+function m2Finish(){
+  // Top 3 qualify for M3
+  const sorted=m2Players.map(p=>({name:p,score:m2Scores[p]||0})).sort((a,b)=>b.score-a.score);
+  tournament.qualifiedM3=sorted.slice(0,3).map(p=>p.name);
+  players.forEach(p=>scores[p]=m2Scores[p]||0);
   showResults();
+}
+
+function renderM2ScorePanel(){
+  const lc=document.getElementById('scores-left');
+  const rc=document.getElementById('scores-right');
+  
+  const html=m2Players.map(p=>{
+    const done=m2Done.includes(p);
+    const current=p===m2CurrentPlayer&&m2Phase==='play';
+    const sc=m2Scores[p];
+    return '<div class="qpuc-row'+(current?' buzzed':'')+(done?' qualified':'')+'">'+
+      '<div class="qr-top">'+
+      '<span class="qr-name">'+p+(done?' ✅':current?' ▶':'')+'</span>'+
+      '<span class="qr-score" style="color:'+(current?'var(--amber)':done?'var(--green)':'var(--sky)')+'">'+
+      (done?sc:current?m2QRight:'—')+'</span></div>'+
+      (done||current?'<div class="qr-bar-wrap"><div class="qr-bar" style="width:'+Math.min(((done?sc:m2QRight)||0)/4*100,100)+'%"></div></div>':'')+
+      '</div>';
+  }).join('');
+  
+  lc.innerHTML='<div class="qpuc-list">'+html+'</div>';
+  
+  rc.innerHTML='<div class="scores-cards-r" style="grid-template-columns:repeat('+Math.min(m2Players.length,4)+',1fr)">'+
+    m2Players.map(p=>{
+      const done=m2Done.includes(p);
+      const current=p===m2CurrentPlayer&&m2Phase==='play';
+      const sc=m2Scores[p];
+      return '<div class="scr-card'+(current?' buzzed':'')+(done?' winner':'')+'">'+
+        '<div class="scr-name">'+p+'</div>'+
+        '<div class="scr-val" style="color:'+(current?'var(--amber)':done?'var(--green)':'var(--sky)')+'">'+
+        (done?sc:current?m2QRight:'—')+'</div>'+
+        '<div class="scr-tgt">'+(done?'✅ '+sc+'/4':current?'▶ joue':'attente')+'</div></div>';
+    }).join('')+'</div>';
 }
 
 // ═══ RESET TOURNAMENT ═══
@@ -1816,32 +1854,8 @@ function goNextPhase(){
     // Launch M2
     gsManV='m2';
     players=[...tournament.qualifiedM2];
-    scores={};players.forEach(p=>scores[p]=0);
-    m2PlayerIdx=0;m2PlayerScores={};players.forEach(p=>m2PlayerScores[p]=0);
-    m2Phase='choose';
-    qIdx=-1;buzzed=null;active=false;revealed=false;
-    streak=0;bestStreak=0;curTheme=null;qualifiedPlayers=[];
-    timerSec=60;stopTimer();updateTimerDisp();
-    setupThemes(true);
-    document.getElementById('gh-lvl').textContent=gsLvlV.toUpperCase();
-    document.getElementById('gh-manche').textContent=MANCHE_LABELS['m2'];
-    document.getElementById('gh-pts').textContent='Tour par tour';
-    document.getElementById('gh-qcnt').textContent=`${players[0]} — choisit`;
-    document.getElementById('g-prog').style.width='0%';
-    document.getElementById('timer-box').classList.remove('show');
-    document.getElementById('streak-box').classList.remove('show');
-    document.getElementById('themes-box').classList.add('show');
-    document.getElementById('btn-ok').disabled=true;
-    document.getElementById('btn-ko').disabled=true;
-    document.getElementById('btn-next').disabled=true;
-    document.getElementById('btn-rev').disabled=true;
-    document.getElementById('buzz-ind').classList.remove('show');
-    document.getElementById('buzz-banner-big').classList.remove('show');
-    renderM2ChoosePhase();
-    renderScores();
     goPage('page-game');
-    syncState();
-    toast('🎯 M2 — '+players[0]+' choisit son thème !');
+    startM2();
     return;
   }
 
