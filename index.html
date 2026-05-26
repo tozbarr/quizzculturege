@@ -396,6 +396,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div id="gs-qinfo" style="background:rgba(135,206,235,.07);border:1px solid rgba(135,206,235,.12);border-radius:8px;padding:.55rem .85rem;font-size:.82rem;color:var(--muted)">Chargement...</div>
     <button class="btn btn-amber btn-full" id="btn-launch" onclick="startGame()">🚀 LANCER LA PARTIE</button>
     <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:.4rem" onclick="if(confirm('Réinitialiser le tournoi ?')){resetTournament()}">🔄 Nouvelle partie</button>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:.4rem;border-color:var(--amber);color:var(--amber)" onclick="showManuel()">⚡ Mode Manuel (accès direct)</button>
   </div>
 </div>
 
@@ -568,6 +569,44 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ═══ MODAL MODE MANUEL ═══ -->
+<div id="modal-manuel" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,20,40,.92);backdrop-filter:blur(6px);overflow-y:auto">
+  <div style="max-width:480px;margin:2rem auto;padding:1.5rem;background:var(--night2);border-radius:16px;border:1px solid rgba(135,206,235,.2)">
+    <div style="font-family:'Bebas Neue',cursive;font-size:1.6rem;letter-spacing:3px;color:var(--amber);margin-bottom:1rem">⚡ MODE MANUEL</div>
+    
+    <div style="margin-bottom:1rem">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:.4rem;font-weight:700;letter-spacing:1px">NIVEAU</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap" id="ml-lvl-tabs">
+        <div class="tab active" onclick="mlSelLvl('6e',this)">6ème</div>
+        <div class="tab" onclick="mlSelLvl('5e',this)">5ème</div>
+        <div class="tab" onclick="mlSelLvl('4e',this)">4ème</div>
+        <div class="tab" onclick="mlSelLvl('3e',this)">3ème</div>
+        <div class="tab tfin" onclick="mlSelLvl('finale',this)">🏆 Finale</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:.4rem;font-weight:700;letter-spacing:1px">MANCHE</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap" id="ml-man-tabs">
+        <div class="tab active" onclick="mlSelMan('m1',this)">M1 — 9 pts</div>
+        <div class="tab" onclick="mlSelMan('m2',this)">M2 — Thèmes</div>
+        <div class="tab" onclick="mlSelMan('m3',this)">M3 — 5 pts</div>
+        <div class="tab tfin" onclick="mlSelMan('finale',this)">🏆 Finale</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:.4rem;font-weight:700;letter-spacing:1px">JOUEURS (un par ligne)</div>
+      <textarea id="ml-players" rows="5" placeholder="Ahmed&#10;Fatima&#10;Yassin&#10;Amina" style="width:100%;background:rgba(135,206,235,.07);border:1.5px solid rgba(135,206,235,.2);border-radius:8px;color:var(--white);padding:.6rem .85rem;font-family:'Exo 2',sans-serif;font-size:.9rem;resize:vertical"></textarea>
+    </div>
+
+    <div style="display:flex;gap:.7rem">
+      <button class="btn btn-amber" style="flex:1;justify-content:center" onclick="startManuel()">🚀 LANCER</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-manuel').style.display='none'">Annuler</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ═══ CONSTANTS ═══
@@ -1792,6 +1831,81 @@ function renderM2ScorePanel(){
         (done?sc:current?m2QRight:'—')+'</div>'+
         '<div class="scr-tgt">'+(done?'✅ '+sc+'/4':current?'▶ joue':'attente')+'</div></div>';
     }).join('')+'</div>';
+}
+
+// ═══ MODE MANUEL ═══
+let mlLvl='6e', mlMan='m1';
+
+function showManuel(){
+  document.getElementById('modal-manuel').style.display='block';
+}
+
+function mlSelLvl(l,el){
+  mlLvl=l;
+  document.querySelectorAll('#ml-lvl-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function mlSelMan(m,el){
+  mlMan=m;
+  document.querySelectorAll('#ml-man-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function startManuel(){
+  const raw=document.getElementById('ml-players').value.trim();
+  const playerList=raw.split('\n').map(n=>n.trim()).filter(Boolean);
+  if(!playerList.length){toast('⚠️ Entre au moins un joueur !');return;}
+  if(playerList.length>4){toast('⚠️ Maximum 4 joueurs !');return;}
+  
+  // Override tournament state
+  gsLvlV=mlLvl;
+  gsManV=mlMan==='finale'?'finale':mlMan;
+  players=[...playerList];
+  
+  if(mlMan==='m2'){
+    tournament.qualifiedM2=[...playerList];
+  } else if(mlMan==='m3'){
+    tournament.qualifiedM3=[...playerList];
+  }
+  
+  document.getElementById('modal-manuel').style.display='none';
+  
+  // Launch directly
+  scores={};players.forEach(p=>scores[p]=0);
+  qIdx=-1;buzzed=null;active=false;revealed=false;
+  streak=0;bestStreak=0;curTheme=null;qualifiedPlayers=[];
+  timerSec=60;stopTimer();updateTimerDisp();resetStreakUI();
+  
+  document.getElementById('gh-lvl').textContent=gsLvlV.toUpperCase();
+  document.getElementById('gh-manche').textContent=MANCHE_LABELS[gsManV]||gsManV.toUpperCase();
+  
+  if(gsManV==='m2'){
+    startM2();
+  } else if(gsManV==='m1'||gsManV==='m3'||gsManV==='finale'){
+    gameQs=buildPool(gsLvlV,gsManV,null);
+    const isM3=gsManV==='m3'||gsManV==='finale';
+    document.getElementById('gh-pts').textContent=gsManV==='m1'?'9 pts':gsManV==='m3'?'5 pts':'6 pts';
+    document.getElementById('gh-qcnt').textContent='Q 0/'+gameQs.length;
+    document.getElementById('g-prog').style.width='0%';
+    document.getElementById('timer-box').classList.remove('show');
+    document.getElementById('streak-box').classList.remove('show');
+    document.getElementById('themes-box').classList.remove('show');
+    document.getElementById('btn-ok').disabled=true;
+    document.getElementById('btn-ko').disabled=true;
+    document.getElementById('btn-rev').disabled=false;
+    document.getElementById('btn-next').disabled=false;
+    document.getElementById('buzz-ind').classList.remove('show');
+    document.getElementById('buzz-banner-big').classList.remove('show');
+    document.getElementById('g-qtxt').innerHTML='<div class="q-waiting">Appuyez sur ▶ Suivant</div>';
+    document.getElementById('g-choices').innerHTML='';
+    document.getElementById('g-diff').style.display='none';
+    document.getElementById('g-mat').style.display='none';
+    renderScores();
+    goPage('page-game');
+    syncState();
+    toast('🚀 '+players.join(', ')+' — GO !');
+  }
 }
 
 // ═══ RESET TOURNAMENT ═══
