@@ -641,6 +641,8 @@ function saveAll(){
   localStorage.setItem('qc_eleves',JSON.stringify(eleves));
   localStorage.setItem('qc_questions',JSON.stringify(questions));
   localStorage.setItem('qc_groupes',JSON.stringify(groupes));
+  // Only sync groupes and eleves to Firebase, not questions
+  fbPatch('groupes',groupes);
 }
 
 // ═══ PAGES ═══
@@ -719,7 +721,7 @@ function addQuestion(){
   if(!questions[curQLvl][curMat][df])questions[curQLvl][curMat][df]=[];
   questions[curQLvl][curMat][df].push({question:q,choices:[a,b,c,d],correct:ok,diff:df,matiere:curMat});
   saveAll();
-  fbPut(`questions/${curQLvl}/${encodeURIComponent(curMat)}/${df}`,questions[curQLvl][curMat][df]);
+  // Questions saved locally only
   ['f-q','f-a','f-b','f-c','f-d'].forEach(id=>document.getElementById(id).value='');
   renderQList();renderStats();toast('✅ Question ajoutée !');
 }
@@ -751,8 +753,8 @@ function importData(e){
       if(d.questions)questions=d.questions;
       if(d.groupes)groupes=d.groupes;
       saveAll();
-      fbPut('questions',questions);
       fbPatch('eleves',eleves);
+      fbPatch('groupes',groupes);
       renderEleves();renderQList();renderStats();
       toast('📂 Import réussi !');
     }catch{toast('❌ Fichier invalide');}
@@ -1220,30 +1222,11 @@ renderEleves();
 renderQList();
 renderStats();
 
-// Load questions from Firebase — only add new ones, never overwrite
-fbGet('questions').then(d=>{
-  if(!d)return;
-  let changed=false;
-  Object.entries(d).forEach(([lvl,mats])=>{
-    if(!questions[lvl])questions[lvl]={};
-    Object.entries(mats||{}).forEach(([mat,diffs])=>{
-      let m=mat;
-      if(m==='Histoire')m='Histoire-Géographie';
-      if(m==='Géographie')return;
-      if(!questions[lvl][m])questions[lvl][m]={};
-      Object.entries(diffs||{}).forEach(([diff,qs])=>{
-        if(qs&&qs.length>(questions[lvl][m][diff]||[]).length){
-          questions[lvl][m][diff]=qs;changed=true;
-        }
-      });
-    });
-  });
-  if(changed){
-    localStorage.setItem('qc_questions',JSON.stringify(questions));
-    renderQList();renderStats();
-  }
+// Questions are embedded in code — no Firebase load needed
+// Just mark Firebase as connected
+fbGet('test').then(()=>{
   document.getElementById('fb-dot').classList.add('on');
-});
+}).catch(()=>{});
 
 // Load eleves from Firebase
 fbGet('eleves').then(d=>{
