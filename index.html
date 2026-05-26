@@ -1094,7 +1094,9 @@ function startGame(){
 function setupThemes(reset=false){
   if(reset || m2Themes.length===0){
     const mats=MATIERES[gsLvlV==='finale'?'3e':gsLvlV]||[];
-    m2Themes=shuffle([...mats,'Joker']).slice(0,5);
+    // Exclude Arabe and Joker from M2 themes
+    const filtered=mats.filter(m=>m!=='Arabe'&&m!=='Joker');
+    m2Themes=shuffle([...filtered]).slice(0,5);
     usedThemes=new Set();
   }
   renderThemes();
@@ -1587,14 +1589,16 @@ function m2PickTheme(t,el){
   
   document.getElementById('themes-box').classList.remove('show');
   document.getElementById('timer-box').classList.add('show');
-  document.getElementById('btn-next').disabled=false;
   document.getElementById('buzz-banner-big').classList.remove('show');
   
-  // Start timer
+  // Start timer then load first question automatically
   timerSec=60;updateTimerDisp();
   startTimer();
   
-  toast('🎯 '+t+' — Cest parti !');
+  // Load first question immediately
+  m2NextQ();
+  
+  toast('🎯 '+t);
   syncState();
 }
 
@@ -1628,6 +1632,8 @@ function m2NextQ(){
   document.getElementById('btn-rev').disabled=false;
   document.getElementById('btn-next').disabled=false;
   document.getElementById('buzz-ind').classList.remove('show');
+  buzzed=players[m2PlayerIdx]; // auto-set current player as buzzed for M2
+  active=true;
   
   renderM2Scores();
   syncState();
@@ -1639,9 +1645,10 @@ function m2MarkOK(){
   revealAns();
   document.getElementById('btn-ok').disabled=true;
   document.getElementById('btn-ko').disabled=true;
+  document.getElementById('btn-next').disabled=false;
   renderM2Scores();
   syncState();
-  toast('✅ +1 !');
+  toast('✅ +1 — ▶ Suivant pour continuer');
 }
 
 function m2MarkKO(){
@@ -1649,9 +1656,10 @@ function m2MarkKO(){
   revealAns();
   document.getElementById('btn-ok').disabled=true;
   document.getElementById('btn-ko').disabled=true;
+  document.getElementById('btn-next').disabled=false;
   renderM2Scores();
   syncState();
-  toast('❌ Mauvaise !');
+  toast('❌ Mauvaise — ▶ Suivant pour continuer');
 }
 
 function m2EndPlayer(){
