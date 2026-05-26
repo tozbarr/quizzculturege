@@ -395,6 +395,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div id="gs-qinfo" style="background:rgba(135,206,235,.07);border:1px solid rgba(135,206,235,.12);border-radius:8px;padding:.55rem .85rem;font-size:.82rem;color:var(--muted)">Chargement...</div>
     <button class="btn btn-amber btn-full" id="btn-launch" onclick="startGame()">🚀 LANCER LA PARTIE</button>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:.4rem" onclick="if(confirm('Réinitialiser le tournoi ?')){resetTournament()}">🔄 Nouvelle partie</button>
   </div>
 </div>
 
@@ -561,7 +562,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
   </div>
   <div id="ev-results" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;text-align:center;padding:2rem;position:relative;z-index:1">
-    <div style="font-family:'Bebas Neue',cursive;font-size:clamp(2.5rem,9vw,6rem);letter-spacing:6px;color:var(--sky)" id="ev-res-title">🏆 CHAMPION</div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:clamp(3.5rem,12vw,9rem);letter-spacing:8px;color:var(--sky);text-shadow:0 0 40px rgba(135,206,235,.5)" id="ev-res-title">🏆</div>
     <div class="podium" id="ev-podium"></div>
   </div>
 </div>
@@ -1322,13 +1323,15 @@ function showResults(){
     }
   }
   
+  if(gsManV==='m3'&&winner){ tournament.champion=winner.name; }
+
   let resTitle='🏆 Résultats';
   if(gsManV==='m1'){
     const phase=getTournamentPhase(gsLvlV);
-    resTitle = phase.type==='demis' ? '⚔️ Demi-finale' : '🏅 Manche 1';
-  } else if(gsManV==='m2') resTitle='🏅 Manche 2 — 4 à la suite';
-  else if(gsManV==='m3') resTitle='🏆 Champion de classe !';
-  else if(gsManV==='finale') resTitle='🏆 Grand Champion !';
+    resTitle = phase.type==='demis' ? '⚔️ Demi-finale' : '🏅 Manche 1 — Qualifiés';
+  } else if(gsManV==='m2') resTitle='🏅 Manche 2 — Top 3 qualifiés M3';
+  else if(gsManV==='m3') resTitle='🏆 CHAMPION DE CLASSE !';
+  else if(gsManV==='finale') resTitle='🏆 GRAND CHAMPION !';
   
   document.getElementById('res-title').textContent=resTitle;
   document.getElementById('podium').innerHTML=top.map((p,i)=>`<div class="pod-col"><div class="pod-name">${p.name}</div><div class="pod-block">${['🥈','🥇','🥉'][i]}</div></div>`).join('');
@@ -1404,7 +1407,18 @@ if(IS_ECRAN){
         const sorted=s.players.map(p=>({name:p,score:s.scores[p]||0})).sort((a,b)=>b.score-a.score);
         const top=[sorted[1],sorted[0],sorted[2]].filter(Boolean);
         document.getElementById('ev-res-title').textContent=s.manche==='m1'?'🏅 QUALIFIÉS':s.manche==='m2'?'🏅 4 À LA SUITE':'🏆 CHAMPION !';
-        document.getElementById('ev-podium').innerHTML=top.map((p,i)=>`<div class="pod-col"><div class="pod-name">${p.name}</div><div class="pod-block">${['🥈','🥇','🥉'][i]}</div></div>`).join('');
+        const evHeights=['180px','260px','130px'];
+        const evColors=['var(--sky)','var(--amber)','#cd7f32'];
+        const evTextColors=['var(--night)','#000','#fff'];
+        const evMedals=['🥈','🥇','🥉'];
+        document.getElementById('ev-podium').innerHTML=top.map((p,i)=>`
+          <div style="display:flex;flex-direction:column;align-items:center;gap:.8rem;width:clamp(140px,18vw,220px)">
+            <div style="font-family:'Bebas Neue',cursive;font-size:clamp(1.5rem,3.5vw,2.5rem);background:rgba(0,40,80,.8);border:2px solid ${evColors[i]};border-radius:12px;padding:.5rem 1rem;text-align:center;width:100%;color:var(--white)">${p.name}</div>
+            <div style="width:100%;height:${evHeights[i]};background:${evColors[i]};border-radius:14px 14px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3rem">
+              <div style="font-size:clamp(3rem,7vw,5rem)">${evMedals[i]}</div>
+              <div style="font-family:'Bebas Neue',cursive;font-size:clamp(1.2rem,3vw,2rem);color:${evTextColors[i]}">${p.score} pts</div>
+            </div>
+          </div>`).join('');
       }
       return;
     }
@@ -1555,12 +1569,12 @@ function goNextPhase(){
     return;
   }
 
-  // After M2 — launch M3
+  // After M2 — top 3 qualify for M3
   if(gsManV==='m2'){
-    // Winner of M2 + others go to M3
-    // Get top players from M2 (all 4 play M3)
+    const m2Sorted=Object.entries(scores).map(([n,s])=>({name:n,score:s})).sort((a,b)=>b.score-a.score);
+    tournament.qualifiedM3=m2Sorted.slice(0,3).map(p=>p.name);
     gsManV='m3';
-    // players stay the same (all 4 qualified)
+    players=[...tournament.qualifiedM3];
     scores={};players.forEach(p=>scores[p]=0);
     qIdx=-1;buzzed=null;active=false;revealed=false;
     qualifiedPlayers=[];
