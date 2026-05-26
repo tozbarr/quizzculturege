@@ -385,11 +385,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Groupe</div>
+      <div class="card-title">Phase du tournoi</div>
+      <div id="gs-phase-info" style="color:var(--sky);font-size:.85rem;font-weight:700;margin-bottom:.7rem"></div>
       <div id="gs-groupes"><div style="color:var(--muted);font-size:.82rem">Génère les groupes dans Config.</div></div>
     </div>
+    <div id="gs-absents-card" class="card" style="display:none">
+      <div class="card-title">⚠️ Absents</div>
+      <div id="gs-absents-list"></div>
+    </div>
     <div id="gs-qinfo" style="background:rgba(135,206,235,.07);border:1px solid rgba(135,206,235,.12);border-radius:8px;padding:.55rem .85rem;font-size:.82rem;color:var(--muted)">Chargement...</div>
-    <button class="btn btn-amber btn-full" onclick="startGame()">🚀 LANCER LA PARTIE</button>
+    <button class="btn btn-amber btn-full" id="btn-launch" onclick="startGame()">🚀 LANCER LA PARTIE</button>
   </div>
 </div>
 
@@ -480,7 +485,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div id="ranking"></div>
     <div id="qualifies-lbl" style="color:var(--green);font-weight:700;font-size:.85rem;text-align:center;margin-top:.3rem"></div>
     <div style="display:flex;gap:.7rem;justify-content:center;margin-top:.8rem;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="goPage('page-setup')">🔄 Manche suivante</button>
+      <button class="btn btn-sky" onclick="goNextPhase()">▶ Phase suivante</button>
+      <button class="btn btn-ghost" onclick="goPage('page-setup')">⚙️ Setup</button>
       <button class="btn btn-amber" onclick="goPage('page-config')">🏠 Accueil</button>
     </div>
   </div>
@@ -764,7 +770,21 @@ function importData(e){
 
 // ═══ GAME SETUP ═══
 let gsLvlV='6e',gsManV='m1',gsGrpIdx=0;
-function gsLvl(l,el){gsLvlV=l;document.querySelectorAll('#gs-lvl-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');loadGsGroupes();gsLvlChanged();}
+function gsLvl(l,el){
+  if(gsLvlV!==l){
+    // Reset tournament when changing level
+    tournament.groupResults=[];
+    tournament.demiGroups=[];
+    tournament.demiResults=[];
+    tournament.qualifiedM2=[];
+    gsGrpIdx=0;
+  }
+  gsLvlV=l;
+  document.querySelectorAll('#gs-lvl-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadGsGroupes();
+  gsLvlChanged();
+}
 function gsMan(m,el){gsManV=m;document.querySelectorAll('#gs-man-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');updateGsInfo();}
 function gsLvlChanged(){
   const isFinale = gsLvlV==='finale';
@@ -782,11 +802,24 @@ function gsLvlChanged(){
   }
   updateGsInfo();
 }
+function getAbsents(lvl){ return tournament.absents[lvl]||[]; }
+function toggleAbsent(lvl,name){
+  if(!tournament.absents[lvl]) tournament.absents[lvl]=[];
+  const idx=tournament.absents[lvl].indexOf(name);
+  if(idx>=0) tournament.absents[lvl].splice(idx,1);
+  else tournament.absents[lvl].push(name);
+  loadGsGroupes();
+}
+
 function loadGsGroupes(){
   const cont=document.getElementById('gs-groupes');
+  const phaseInfo=document.getElementById('gs-phase-info');
+  const absCard=document.getElementById('gs-absents-card');
+
   if(gsLvlV==='finale'){
-    // For finale, show input for 4 champions names
-    const champs = groupes['finale'] || ['','','',''];
+    if(phaseInfo) phaseInfo.textContent='🏆 Grande Finale Inter-classes';
+    if(absCard) absCard.style.display='none';
+    const champs=groupes['finale']||['','','',''];
     cont.innerHTML=`<div style="display:flex;flex-direction:column;gap:.5rem">
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">Entre les 4 champions (un par classe) :</div>
       ${['6ème','5ème','4ème','3ème'].map((lbl,i)=>`
@@ -798,10 +831,119 @@ function loadGsGroupes(){
     </div>`;
     return;
   }
-  const grps=(groupes[gsLvlV]||[]);
-  if(!grps.length){cont.innerHTML='<div style="color:var(--muted);font-size:.82rem">Génère les groupes dans Config.</div>';return;}
-  cont.innerHTML='<div class="tabs">'+grps.map((g,i)=>`<div class="tab${i===gsGrpIdx?' active':''}" onclick="gsSelGrp(${i},this)" style="width:100%;display:flex;justify-content:space-between"><span>Groupe ${i+1}</span><span style="font-size:.7rem;color:var(--muted)">${g.slice(0,3).join(', ')}${g.length>3?'…':''}</span></div>`).join('')+'</div>';
+
+  const allGrps=(groupes[gsLvlV]||[]);
+  if(!allGrps.length){
+    cont.innerHTML='<div style="color:var(--muted);font-size:.82rem">Génère les groupes dans Config.</div>';
+    if(absCard) absCard.style.display='none';
+    return;
+  }
+
+  // Check tournament phase
+  const phase=getTournamentPhase(gsLvlV);
+  if(phaseInfo) phaseInfo.textContent=phase.label;
+
+  if(phase.type==='groupes'){
+    // Show group selector + absent toggle
+    const absents=getAbsents(gsLvlV);
+    
+    // Collect all players for absent tracking
+    const allPlayers=[...new Set(allGrps.flat())];
+    
+    if(absCard){
+      absCard.style.display='block';
+      document.getElementById('gs-absents-list').innerHTML=allPlayers.map(n=>`
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+          <button onclick="toggleAbsent('${gsLvlV}','${n.replace(/'/g,"\'")}' )" 
+            style="padding:.2rem .5rem;border-radius:4px;border:none;cursor:pointer;font-size:.72rem;font-weight:700;background:${absents.includes(n)?'var(--red)':'rgba(135,206,235,.1)'};color:${absents.includes(n)?'#fff':'var(--muted)'}">
+            ${absents.includes(n)?'Absent':'Présent'}
+          </button>
+          <span style="font-size:.82rem;${absents.includes(n)?'text-decoration:line-through;color:var(--muted)':''}">${n}</span>
+        </div>`).join('');
+    }
+
+    // Show groups (filter absents)
+    cont.innerHTML='<div class="tabs">'+allGrps.map((g,i)=>{
+      const present=g.filter(n=>!absents.includes(n));
+      const done=tournament.groupResults.find(r=>r.grpIdx===i);
+      return `<div class="tab${i===gsGrpIdx?' active':''}" onclick="gsSelGrp(${i},this)" 
+        style="width:100%;display:flex;justify-content:space-between;${done?'opacity:.6':''}">
+        <span>Groupe ${i+1} ${done?'✅':''}</span>
+        <span style="font-size:.7rem;color:var(--muted)">${present.slice(0,3).join(', ')}${present.length>3?'…':''} (${present.length})</span>
+      </div>`;
+    }).join('')+'</div>';
+
+    const done=tournament.groupResults.length;
+    const total=allGrps.length;
+    const btn=document.getElementById('btn-launch');
+    if(btn) btn.textContent=`🚀 Groupe ${gsGrpIdx+1} — LANCER`;
+
+  } else if(phase.type==='demis'){
+    if(absCard) absCard.style.display='none';
+    cont.innerHTML=`<div style="color:var(--sky);font-size:.85rem;margin-bottom:.5rem">🏅 ${tournament.groupResults.length} qualifiés de M1 :</div>`+
+      tournament.groupResults.map((r,i)=>`<div style="background:rgba(135,206,235,.07);border-radius:6px;padding:.35rem .65rem;margin-bottom:.3rem;font-size:.82rem">
+        <b>${r.winner}</b> <span style="color:var(--muted)">— Groupe ${r.grpIdx+1}</span>
+      </div>`).join('')+
+      `<div style="margin-top:.7rem;color:var(--amber);font-size:.8rem;font-weight:700">Demi-finale ${phase.demiIdx+1}/${phase.totalDemis} — ${phase.demiPlayers.join(', ')}</div>`;
+    
+    const btn=document.getElementById('btn-launch');
+    if(btn) btn.textContent=`🚀 Demi-finale ${phase.demiIdx+1} — LANCER`;
+
+  } else if(phase.type==='m2'){
+    if(absCard) absCard.style.display='none';
+    cont.innerHTML=`<div style="color:var(--green);font-size:.85rem;font-weight:700;margin-bottom:.5rem">✅ 4 qualifiés pour la Manche 2 :</div>`+
+      tournament.qualifiedM2.map(n=>`<div style="background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:6px;padding:.35rem .65rem;margin-bottom:.3rem;font-size:.88rem;font-weight:700">🏅 ${n}</div>`).join('');
+    
+    const btn=document.getElementById('btn-launch');
+    if(btn) btn.textContent=`🚀 Manche 2 — LANCER`;
+  }
+
+  updateGsInfo();
 }
+
+function getTournamentPhase(lvl){
+  const allGrps=groupes[lvl]||[];
+  const nbGrps=allGrps.length;
+  const doneGroupes=tournament.groupResults.length;
+  
+  // Still doing groupes
+  if(doneGroupes < nbGrps){
+    return {type:'groupes', label:`📋 M1 Qualifs — Groupe ${doneGroupes+1}/${nbGrps}`};
+  }
+  
+  // All groupes done — calculate demis needed
+  const winners=tournament.groupResults.map(r=>r.winner);
+  const nbWinners=winners.length;
+  
+  if(nbWinners<=4 && tournament.qualifiedM2.length===0){
+    // No demis needed, all qualify directly
+    if(tournament.qualifiedM2.length===0){
+      tournament.qualifiedM2=[...winners].slice(0,4);
+    }
+    return {type:'m2', label:'✅ 4 qualifiés — Manche 2 prête'};
+  }
+  
+  if(nbWinners>4 && tournament.qualifiedM2.length<4){
+    // Need demis
+    const doneDemis=tournament.demiResults.length;
+    // Split winners into groups of max 4
+    const demiGroups=[];
+    for(let i=0;i<winners.length;i+=4) demiGroups.push(winners.slice(i,i+4));
+    tournament.demiGroups=demiGroups;
+    
+    // How many qualify per demi to reach 4 total
+    const totalDemis=demiGroups.length;
+    const qualPerDemi=Math.ceil(4/totalDemis);
+    
+    if(doneDemis<totalDemis){
+      const demiPlayers=demiGroups[doneDemis]||[];
+      return {type:'demis', label:`⚔️ Demi-finale ${doneDemis+1}/${totalDemis}`, demiIdx:doneDemis, totalDemis, demiPlayers, qualPerDemi};
+    }
+  }
+  
+  return {type:'m2', label:'✅ 4 qualifiés — Manche 2 prête'};
+}
+
 function updateChamp(i,val){
   if(!groupes['finale'])groupes['finale']=['','','',''];
   groupes['finale'][i]=val;
@@ -865,6 +1007,17 @@ let gameMode='anim';
 let m2Themes=[]; // Fixed themes for whole M2 round
 let usedThemes=new Set(); // Themes already chosen
 
+// ── TOURNAMENT STATE ──
+let tournament = {
+  lvl: '6e',
+  phase: 'groupes',   // groupes | demis | m2 | m3
+  groupResults: [],   // [{grpIdx, winner, score}]
+  demiGroups: [],     // [[name,...], ...]
+  demiResults: [],    // [{grpIdx, winner}]
+  qualifiedM2: [],    // 4 noms
+  absents: {},        // {lvl: [name,...]}
+};
+
 function setMode(m){
   gameMode=m;
   document.getElementById('mode-anim').classList.toggle('active',m==='anim');
@@ -876,11 +1029,32 @@ function startGame(){
   let grps;
   if(gsLvlV==='finale'){
     grps=[groupes['finale']||[]];
-    players=(groupes['finale']||[]).filter(n=>n.trim());
+    players=(groupes['finale']||[]).filter(n=>n&&n.trim());
     if(!players.length){toast('⚠️ Entre les noms des 4 champions !');return;}
+    gsManV='finale';
   } else {
-    grps=(groupes[gsLvlV]||[]);
-    players=grps[gsGrpIdx]||[];
+    const phase=getTournamentPhase(gsLvlV);
+    const absents=getAbsents(gsLvlV);
+    
+    if(phase.type==='groupes'){
+      gsManV='m1';
+      const allGrps=groupes[gsLvlV]||[];
+      const grp=allGrps[gsGrpIdx]||[];
+      players=grp.filter(n=>!absents.includes(n));
+      if(!players.length){toast('⚠️ Groupe vide ou tous absents !');return;}
+      
+    } else if(phase.type==='demis'){
+      gsManV='m1'; // Demi uses M1 format but higher target
+      players=phase.demiPlayers||[];
+      if(!players.length){toast('⚠️ Aucun joueur pour la demi !');return;}
+      
+    } else if(phase.type==='m2'){
+      gsManV='m2';
+      players=[...tournament.qualifiedM2];
+      if(!players.length){toast('⚠️ Pas de qualifiés !');return;}
+    }
+    
+    grps=[players];
     if(!players.length){toast('⚠️ Aucun joueur !');return;}
   }
   gameQs=buildPool(gsLvlV,gsManV,null);
@@ -1074,11 +1248,66 @@ function confirmEnd(){if(confirm('Terminer ?'))showResults();}
 function showResults(){
   stopTimer();
   const sorted=Object.entries(scores).map(([n,s])=>({name:n,score:s})).sort((a,b)=>b.score-a.score);
+  const winner=sorted[0];
   const top=[sorted[1],sorted[0],sorted[2]].filter(Boolean);
-  document.getElementById('res-title').textContent=gsManV==='m1'?'🏅 Qualifiés':gsManV==='m2'?'🏅 4 à la suite':'🏆 Champion !';
+  
+  // Handle tournament progression
+  if(gsLvlV!=='finale'){
+    const phase=getTournamentPhase(gsLvlV);
+    
+    if(phase.type==='groupes' && gsManV==='m1'){
+      // Record group winner
+      if(winner){
+        tournament.groupResults.push({grpIdx:gsGrpIdx, winner:winner.name, score:winner.score});
+        toast(`🏅 ${winner.name} qualifié(e) !`);
+      }
+      // Check if all groups done
+      const allGrps=groupes[gsLvlV]||[];
+      if(tournament.groupResults.length>=allGrps.length){
+        // Check if demis needed
+        const winners=tournament.groupResults.map(r=>r.winner);
+        if(winners.length<=4){
+          tournament.qualifiedM2=[...winners];
+        }
+      } else {
+        // Move to next group
+        gsGrpIdx++;
+      }
+    } else if(phase.type==='demis' && gsManV==='m1'){
+      // Record demi winners
+      const qualPerDemi=phase.qualPerDemi||2;
+      const demiWinners=sorted.slice(0,qualPerDemi).map(p=>p.name);
+      tournament.demiResults.push({grpIdx:phase.demiIdx, winners:demiWinners});
+      
+      // Check if all demis done
+      const allDemiWinners=tournament.demiResults.flatMap(r=>r.winners);
+      if(tournament.demiResults.length>=phase.totalDemis){
+        tournament.qualifiedM2=allDemiWinners.slice(0,4);
+        toast(`✅ 4 qualifiés : ${tournament.qualifiedM2.join(', ')}`);
+      }
+    }
+  }
+  
+  let resTitle='🏆 Résultats';
+  if(gsManV==='m1'){
+    const phase=getTournamentPhase(gsLvlV);
+    resTitle = phase.type==='demis' ? '⚔️ Demi-finale' : '🏅 Manche 1';
+  } else if(gsManV==='m2') resTitle='🏅 Manche 2 — 4 à la suite';
+  else if(gsManV==='m3') resTitle='🏆 Champion de classe !';
+  else if(gsManV==='finale') resTitle='🏆 Grand Champion !';
+  
+  document.getElementById('res-title').textContent=resTitle;
   document.getElementById('podium').innerHTML=top.map((p,i)=>`<div class="pod-col"><div class="pod-name">${p.name}</div><div class="pod-block">${['🥈','🥇','🥉'][i]}</div></div>`).join('');
-  document.getElementById('ranking').innerHTML=sorted.map((p,i)=>`<div class="rank-row"><span>${['🥇','🥈','🥉','4️⃣'][i]} ${p.name}</span><span class="rank-sc">${p.score} pts</span></div>`).join('');
-  document.getElementById('qualifies-lbl').textContent=qualifiedPlayers.length?'✅ Qualifiés : '+qualifiedPlayers.join(', '):'';
+  document.getElementById('ranking').innerHTML=sorted.map((p,i)=>`<div class="rank-row"><span>${['🥇','🥈','🥉','4️⃣'][i]||i+1+'.'} ${p.name}</span><span class="rank-sc">${p.score} pts</span></div>`).join('');
+  
+  // Show next phase info
+  const nextPhase=getTournamentPhase(gsLvlV);
+  let nextLabel='';
+  if(nextPhase.type==='groupes') nextLabel=`➡️ Prochain : Groupe ${tournament.groupResults.length+1}`;
+  else if(nextPhase.type==='demis') nextLabel=`➡️ Prochain : Demi-finale ${tournament.demiResults.length+1}`;
+  else if(nextPhase.type==='m2') nextLabel=`➡️ Prêt pour la Manche 2 !`;
+  document.getElementById('qualifies-lbl').textContent=nextLabel;
+  
   goPage('page-results');
   syncState();
 }
@@ -1208,6 +1437,26 @@ if(IS_ECRAN){
         }
       }
     }
+  }
+}
+
+// ═══ NEXT PHASE ═══
+function goNextPhase(){
+  const phase=getTournamentPhase(gsLvlV);
+  if(phase.type==='groupes'){
+    // Go to next group
+    goPage('page-setup');
+    loadGsGroupes();
+  } else if(phase.type==='demis'){
+    gsManV='m1';
+    goPage('page-setup');
+    loadGsGroupes();
+  } else if(phase.type==='m2'){
+    gsManV='m2';
+    goPage('page-setup');
+    loadGsGroupes();
+  } else {
+    goPage('page-setup');
   }
 }
 
