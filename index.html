@@ -485,7 +485,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div id="ranking"></div>
     <div id="qualifies-lbl" style="color:var(--green);font-weight:700;font-size:.85rem;text-align:center;margin-top:.3rem"></div>
     <div style="display:flex;gap:.7rem;justify-content:center;margin-top:.8rem;flex-wrap:wrap">
-      <button class="btn btn-sky" onclick="goNextPhase()">▶ Phase suivante</button>
+      <button class="btn btn-sky" id="btn-next-phase" onclick="goNextPhase()">▶ Phase suivante</button>
       <button class="btn btn-ghost" onclick="goPage('page-setup')">⚙️ Setup</button>
       <button class="btn btn-amber" onclick="goPage('page-config')">🏠 Accueil</button>
     </div>
@@ -1201,10 +1201,44 @@ function markOK(){
   if(!buzzed)return;
   scores[buzzed]=(scores[buzzed]||0)+1;
   const target=TARGET_PTS[gsManV]||9;
-  if(gsManV==='m2'){streak++;if(streak>bestStreak)bestStreak=streak;updateStreakUI(true);if(streak>=4){stopTimer();toast('🏆 4 À LA SUITE ! '+buzzed+' gagne !');}}
-  if(gsManV==='m1'&&scores[buzzed]>=target){qualifiedPlayers.push(buzzed);scores[buzzed]=0;toast('🎉 '+buzzed+' est QUALIFIÉ(E) !');}
-  else if((gsManV==='m3'||gsManV==='finale')&&scores[buzzed]>=target){toast('🏆 '+buzzed+' GAGNE !');}
-  else{toast('🎉 +1 pour '+buzzed+' !');}
+  
+  if(gsManV==='m2'){
+    // M2 : streak de 4
+    streak++;
+    if(streak>bestStreak)bestStreak=streak;
+    updateStreakUI(true);
+    if(streak>=4){
+      stopTimer();
+      revealAns();
+      renderScores();syncState();
+      toast('🏆 4 À LA SUITE ! '+buzzed+' gagne !');
+      document.getElementById('btn-ok').disabled=true;
+      document.getElementById('btn-ko').disabled=true;
+      setTimeout(()=>showResults(), 1500);
+      return;
+    }
+  } else if(gsManV==='m1' && scores[buzzed]>=target){
+    // M1 : premier à 9pts → partie terminée
+    revealAns();
+    renderScores();syncState();
+    toast('🏅 '+buzzed+' est QUALIFIÉ(E) !');
+    document.getElementById('btn-ok').disabled=true;
+    document.getElementById('btn-ko').disabled=true;
+    setTimeout(()=>showResults(), 1500);
+    return;
+  } else if((gsManV==='m3'||gsManV==='finale') && scores[buzzed]>=target){
+    // M3/Finale : premier au score cible → champion
+    revealAns();
+    renderScores();syncState();
+    toast('🏆 '+buzzed+' GAGNE !');
+    document.getElementById('btn-ok').disabled=true;
+    document.getElementById('btn-ko').disabled=true;
+    setTimeout(()=>showResults(), 1500);
+    return;
+  } else {
+    toast('🎉 +1 pour '+buzzed+' !');
+  }
+  
   revealAns();
   document.getElementById('btn-ok').disabled=true;
   document.getElementById('btn-ko').disabled=true;
@@ -1307,6 +1341,14 @@ function showResults(){
   else if(nextPhase.type==='demis') nextLabel=`➡️ Prochain : Demi-finale ${tournament.demiResults.length+1}`;
   else if(nextPhase.type==='m2') nextLabel=`➡️ Prêt pour la Manche 2 !`;
   document.getElementById('qualifies-lbl').textContent=nextLabel;
+  // Update button label
+  const btn=document.getElementById('btn-next-phase');
+  if(btn){
+    if(nextPhase.type==='groupes') btn.textContent='▶ Groupe suivant';
+    else if(nextPhase.type==='demis') btn.textContent='⚔️ Demi-finale suivante';
+    else if(nextPhase.type==='m2') btn.textContent='🎯 Lancer Manche 2';
+    else btn.textContent='▶ Phase suivante';
+  }
   
   goPage('page-results');
   syncState();
@@ -1442,22 +1484,111 @@ if(IS_ECRAN){
 
 // ═══ NEXT PHASE ═══
 function goNextPhase(){
-  const phase=getTournamentPhase(gsLvlV);
-  if(phase.type==='groupes'){
-    // Go to next group
+  if(gsLvlV==='finale'){
     goPage('page-setup');
-    loadGsGroupes();
-  } else if(phase.type==='demis'){
+    return;
+  }
+
+  const allGrps=groupes[gsLvlV]||[];
+  const doneGroupes=tournament.groupResults.length;
+  const nbGrps=allGrps.length;
+
+  // Still have groups to play
+  if(doneGroupes < nbGrps){
+    gsGrpIdx=doneGroupes; // next group index
     gsManV='m1';
     goPage('page-setup');
     loadGsGroupes();
-  } else if(phase.type==='m2'){
-    gsManV='m2';
-    goPage('page-setup');
-    loadGsGroupes();
-  } else {
-    goPage('page-setup');
+    toast(`Groupe ${gsGrpIdx+1} — prêt !`);
+    return;
   }
+
+  // All groups done — check if demis needed
+  const winners=tournament.groupResults.map(r=>r.winner);
+  if(winners.length>4 && tournament.qualifiedM2.length<4){
+    // Need demis
+    const doneDemis=tournament.demiResults.length;
+    const demiGroups=tournament.demiGroups.length?tournament.demiGroups:
+      (()=>{const dg=[];for(let i=0;i<winners.length;i+=4)dg.push(winners.slice(i,i+4));return dg;})();
+    tournament.demiGroups=demiGroups;
+
+    if(doneDemis<demiGroups.length){
+      gsManV='m1';
+      goPage('page-setup');
+      loadGsGroupes();
+      toast(`Demi-finale ${doneDemis+1} — prête !`);
+      return;
+    }
+  }
+
+  // Check if we have 4 qualified for M2
+  if(tournament.qualifiedM2.length>=4 && gsManV!=='m2' && gsManV!=='m3'){
+    // Launch M2 directly
+    gsManV='m2';
+    players=[...tournament.qualifiedM2];
+    scores={};players.forEach(p=>scores[p]=0);
+    qIdx=-1;buzzed=null;active=false;revealed=false;
+    streak=0;bestStreak=0;curTheme=null;qualifiedPlayers=[];
+    timerSec=60;stopTimer();updateTimerDisp();resetStreakUI();
+    gameQs=buildPool(gsLvlV,'m2',null);
+    document.getElementById('gh-lvl').textContent=gsLvlV.toUpperCase();
+    document.getElementById('gh-manche').textContent=MANCHE_LABELS['m2'];
+    document.getElementById('gh-pts').textContent='4 à la suite';
+    document.getElementById('gh-qcnt').textContent='Q 0/'+gameQs.length;
+    document.getElementById('g-prog').style.width='0%';
+    document.getElementById('timer-box').classList.add('show');
+    document.getElementById('streak-box').classList.add('show');
+    document.getElementById('themes-box').classList.add('show');
+    setupThemes(true);
+    document.getElementById('btn-ok').disabled=true;
+    document.getElementById('btn-ko').disabled=true;
+    document.getElementById('buzz-ind').classList.remove('show');
+    document.getElementById('buzz-banner-big').classList.remove('show');
+    document.getElementById('g-qtxt').innerHTML='<div class="q-waiting">Choisissez un thème !</div>';
+    document.getElementById('g-choices').innerHTML='';
+    document.getElementById('g-diff').style.display='none';
+    document.getElementById('g-mat').style.display='none';
+    renderScores();
+    goPage('page-game');
+    syncState();
+    toast('🎯 Manche 2 — Choisissez un thème !');
+    return;
+  }
+
+  // After M2 — launch M3
+  if(gsManV==='m2'){
+    // Winner of M2 + others go to M3
+    // Get top players from M2 (all 4 play M3)
+    gsManV='m3';
+    // players stay the same (all 4 qualified)
+    scores={};players.forEach(p=>scores[p]=0);
+    qIdx=-1;buzzed=null;active=false;revealed=false;
+    qualifiedPlayers=[];
+    gameQs=buildPool(gsLvlV,'m3',null);
+    document.getElementById('gh-manche').textContent=MANCHE_LABELS['m3'];
+    document.getElementById('gh-pts').textContent='5 pts';
+    document.getElementById('gh-qcnt').textContent='Q 0/'+gameQs.length;
+    document.getElementById('g-prog').style.width='0%';
+    document.getElementById('timer-box').classList.remove('show');
+    document.getElementById('streak-box').classList.remove('show');
+    document.getElementById('themes-box').classList.remove('show');
+    document.getElementById('btn-ok').disabled=true;
+    document.getElementById('btn-ko').disabled=true;
+    document.getElementById('buzz-ind').classList.remove('show');
+    document.getElementById('buzz-banner-big').classList.remove('show');
+    document.getElementById('g-qtxt').innerHTML='<div class="q-waiting">Appuyez sur ▶ Suivant</div>';
+    document.getElementById('g-choices').innerHTML='';
+    document.getElementById('g-diff').style.display='none';
+    document.getElementById('g-mat').style.display='none';
+    renderScores();
+    goPage('page-game');
+    syncState();
+    toast('🔴 Manche 3 — Questions difficiles !');
+    return;
+  }
+
+  goPage('page-setup');
+  loadGsGroupes();
 }
 
 // ═══ TOAST ═══
