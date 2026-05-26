@@ -147,6 +147,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .themes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:.35rem}
 .theme-btn{padding:.4rem .45rem;border-radius:7px;border:2px solid rgba(135,206,235,.18);background:rgba(135,206,235,.05);color:var(--offwhite);cursor:pointer;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.72rem;text-align:center;transition:all .2s}
 .theme-btn.sel{border-color:var(--amber);color:var(--amber);background:rgba(255,179,0,.08)}
+.theme-btn.used{opacity:.35;text-decoration:line-through;cursor:not-allowed;border-color:rgba(135,206,235,.08)}
 
 /* SCORES M1 QPUC */
 .qpuc-list{display:flex;flex-direction:column;gap:.4rem}
@@ -372,7 +373,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="tab t5" onclick="gsLvl('5e',this)">5ème</div>
         <div class="tab t4" onclick="gsLvl('4e',this)">4ème</div>
         <div class="tab t3" onclick="gsLvl('3e',this)">3ème</div>
-        <div class="tab tfin" onclick="gsLvl('finale',this)">🏆 Finale</div>
+        <div class="tab tfin" onclick="gsLvl('finale',this)">🏆 Inter-classes</div>
       </div>
     </div>
     <div class="card">
@@ -567,7 +568,7 @@ const LEVELS=['6e','5e','4e','3e'];
 const LVL_LABELS={'6e':'6ème','5e':'5ème','4e':'4ème','3e':'3ème'};
 const DIFFS=['easy','medium','hard','spare'];
 const DIFF_LABELS={easy:'Facile',medium:'Moyen',hard:'Difficile',spare:'Joker'};
-const MANCHE_LABELS={m1:'MANCHE 1 — 9 PTS',m2:'MANCHE 2 — 4 À LA SUITE',m3:'MANCHE 3 — 5 PTS',finale:'GRANDE FINALE — 6 PTS'};
+const MANCHE_LABELS={m1:'MANCHE 1 — 9 PTS',m2:'MANCHE 2 — 4 À LA SUITE',m3:'MANCHE 3 — 5 PTS',finale:'GRANDE FINALE INTER-CLASSES — 6 PTS'};
 const TARGET_PTS={m1:9,m3:5,finale:6};
 const MATIERES={
   '6e':['Français','Histoire-Géographie','Physique','SVT','Maths','EPS','Art','Musique','Anglais','Arabe'],
@@ -734,13 +735,48 @@ function importData(e){
 
 // ═══ GAME SETUP ═══
 let gsLvlV='6e',gsManV='m1',gsGrpIdx=0;
-function gsLvl(l,el){gsLvlV=l;document.querySelectorAll('#gs-lvl-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');loadGsGroupes();updateGsInfo();}
+function gsLvl(l,el){gsLvlV=l;document.querySelectorAll('#gs-lvl-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');loadGsGroupes();gsLvlChanged();}
 function gsMan(m,el){gsManV=m;document.querySelectorAll('#gs-man-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');updateGsInfo();}
+function gsLvlChanged(){
+  const isFinale = gsLvlV==='finale';
+  const manTabs = document.getElementById('gs-man-tabs');
+  if(isFinale){
+    // Force finale manche
+    gsManV='finale';
+    manTabs.innerHTML='<div class="tab active">🏆 Grande Finale — 6 pts (Jokers)</div>';
+  } else {
+    manTabs.innerHTML=`
+      <div class="tab${gsManV==='m1'?' active':''}" onclick="gsMan('m1',this)">M1 — 9 pts Qualifs</div>
+      <div class="tab${gsManV==='m2'?' active':''}" onclick="gsMan('m2',this)">M2 — 4 à la suite</div>
+      <div class="tab${gsManV==='m3'?' active':''}" onclick="gsMan('m3',this)">M3 — 5 pts Finale</div>`;
+    if(!['m1','m2','m3'].includes(gsManV)) gsManV='m1';
+  }
+  updateGsInfo();
+}
 function loadGsGroupes(){
+  const cont=document.getElementById('gs-groupes');
+  if(gsLvlV==='finale'){
+    // For finale, show input for 4 champions names
+    const champs = groupes['finale'] || ['','','',''];
+    cont.innerHTML=`<div style="display:flex;flex-direction:column;gap:.5rem">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">Entre les 4 champions (un par classe) :</div>
+      ${['6ème','5ème','4ème','3ème'].map((lbl,i)=>`
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:.75rem;color:var(--muted);min-width:48px">${lbl}</span>
+          <input value="${champs[i]||''}" placeholder="Champion ${lbl}..." oninput="updateChamp(${i},this.value)"
+            style="flex:1;background:rgba(135,206,235,.07);border:1.5px solid rgba(135,206,235,.2);border-radius:6px;color:var(--white);padding:.45rem .7rem;font-family:'Exo 2',sans-serif;font-size:.85rem">
+        </div>`).join('')}
+    </div>`;
+    return;
+  }
   const grps=(groupes[gsLvlV]||[]);
-  const c=document.getElementById('gs-groupes');
-  if(!grps.length){c.innerHTML='<div style="color:var(--muted);font-size:.82rem">Génère les groupes dans Config.</div>';return;}
-  c.innerHTML='<div class="tabs">'+grps.map((g,i)=>`<div class="tab${i===gsGrpIdx?' active':''}" onclick="gsSelGrp(${i},this)" style="width:100%;display:flex;justify-content:space-between"><span>Groupe ${i+1}</span><span style="font-size:.7rem;color:var(--muted)">${g.slice(0,3).join(', ')}${g.length>3?'…':''}</span></div>`).join('')+'</div>';
+  if(!grps.length){cont.innerHTML='<div style="color:var(--muted);font-size:.82rem">Génère les groupes dans Config.</div>';return;}
+  cont.innerHTML='<div class="tabs">'+grps.map((g,i)=>`<div class="tab${i===gsGrpIdx?' active':''}" onclick="gsSelGrp(${i},this)" style="width:100%;display:flex;justify-content:space-between"><span>Groupe ${i+1}</span><span style="font-size:.7rem;color:var(--muted)">${g.slice(0,3).join(', ')}${g.length>3?'…':''}</span></div>`).join('')+'</div>';
+}
+function updateChamp(i,val){
+  if(!groupes['finale'])groupes['finale']=['','','',''];
+  groupes['finale'][i]=val;
+  localStorage.setItem('qc_groupes',JSON.stringify(groupes));
 }
 function gsSelGrp(i,el){gsGrpIdx=i;document.querySelectorAll('#gs-groupes .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
 
@@ -760,18 +796,28 @@ function buildPool(lvl,man,themeOnly){
   const src=lvl==='finale'?null:lvl;
   let pool=[];
   if(themeOnly){
+    // M2 : questions Moyen uniquement sur le thème choisi
     if(themeOnly==='Joker'){
-      LEVELS.forEach(l=>{const qs=questions[l]||{};Object.values(qs).forEach(m=>DIFFS.forEach(d=>(m[d]||[]).forEach(q=>pool.push({...q}))));});
+      LEVELS.forEach(l=>{const qs=questions[l]||{};Object.values(qs).forEach(m=>(m['medium']||[]).forEach(q=>pool.push({...q})));});
     } else {
       const mat=(questions[src]||{})[themeOnly]||{};
-      DIFFS.forEach(d=>(mat[d]||[]).forEach(q=>pool.push({...q,matiere:themeOnly})));
+      (mat['medium']||[]).forEach(q=>pool.push({...q,matiere:themeOnly}));
     }
   } else if(!src){
-    LEVELS.forEach(l=>{const qs=questions[l]||{};Object.values(qs).forEach(m=>['hard','spare'].forEach(d=>(m[d]||[]).forEach(q=>pool.push({...q}))));});
-  } else {
+    // Grande Finale : questions Joker de toutes les classes mélangées
+    LEVELS.forEach(l=>{const qs=questions[l]||{};Object.values(qs).forEach(m=>(m['spare']||[]).forEach(q=>pool.push({...q})));});
+  } else if(man==='m1'){
+    // M1 : uniquement Facile
     const qs=questions[src]||{};
-    const diffs=(man==='m3'||man==='finale')?['medium','hard']:DIFFS;
-    Object.entries(qs).forEach(([mat,bd])=>diffs.forEach(d=>(bd[d]||[]).forEach(q=>pool.push({...q,matiere:mat}))));
+    Object.entries(qs).forEach(([mat,bd])=>(bd['easy']||[]).forEach(q=>pool.push({...q,matiere:mat})));
+  } else if(man==='m3'){
+    // M3 : uniquement Difficile
+    const qs=questions[src]||{};
+    Object.entries(qs).forEach(([mat,bd])=>(bd['hard']||[]).forEach(q=>pool.push({...q,matiere:mat})));
+  } else {
+    // Autre : tout
+    const qs=questions[src]||{};
+    Object.entries(qs).forEach(([mat,bd])=>DIFFS.forEach(d=>(bd[d]||[]).forEach(q=>pool.push({...q,matiere:mat}))));
   }
   return antiCheap(shuffle(pool));
 }
@@ -787,6 +833,8 @@ let streak=0,bestStreak=0,curTheme=null;
 let timerSec=60,timerIv=null;
 let qualifiedPlayers=[];
 let gameMode='anim';
+let m2Themes=[]; // Fixed themes for whole M2 round
+let usedThemes=new Set(); // Themes already chosen
 
 function setMode(m){
   gameMode=m;
@@ -796,9 +844,16 @@ function setMode(m){
 }
 
 function startGame(){
-  const grps=(groupes[gsLvlV]||[]);
-  players=grps[gsGrpIdx]||[];
-  if(!players.length){toast('⚠️ Aucun joueur !');return;}
+  let grps;
+  if(gsLvlV==='finale'){
+    grps=[groupes['finale']||[]];
+    players=(groupes['finale']||[]).filter(n=>n.trim());
+    if(!players.length){toast('⚠️ Entre les noms des 4 champions !');return;}
+  } else {
+    grps=(groupes[gsLvlV]||[]);
+    players=grps[gsGrpIdx]||[];
+    if(!players.length){toast('⚠️ Aucun joueur !');return;}
+  }
   gameQs=buildPool(gsLvlV,gsManV,null);
   if(!gameQs.length){toast('⚠️ Aucune question !');return;}
   scores={};players.forEach(p=>scores[p]=0);
@@ -813,7 +868,7 @@ function startGame(){
   document.getElementById('streak-box').classList.toggle('show',isM2);
   document.getElementById('themes-box').classList.toggle('show',isM2);
   resetStreakUI();
-  if(isM2)setupThemes();
+  if(isM2)setupThemes(true); // reset=true generates new themes
   document.getElementById('btn-ok').disabled=true;
   document.getElementById('btn-ko').disabled=true;
   document.getElementById('buzz-ind').classList.remove('show');
@@ -828,15 +883,31 @@ function startGame(){
   toast('🚀 Partie lancée !');
 }
 
-function setupThemes(){
-  const mats=MATIERES[gsLvlV==='finale'?'3e':gsLvlV]||[];
-  const themes=shuffle([...mats,'Joker']).slice(0,5);
-  document.getElementById('themes-grid').innerHTML=themes.map(t=>`<div class="theme-btn${curTheme===t?' sel':''}" onclick="pickTheme('${t.replace(/'/g,"\\'")}',this)">${t}</div>`).join('');
+function setupThemes(reset=false){
+  if(reset || m2Themes.length===0){
+    const mats=MATIERES[gsLvlV==='finale'?'3e':gsLvlV]||[];
+    m2Themes=shuffle([...mats,'Joker']).slice(0,5);
+    usedThemes=new Set();
+  }
+  renderThemes();
+}
+function renderThemes(){
+  document.getElementById('themes-grid').innerHTML=m2Themes.map(t=>{
+    const used=usedThemes.has(t);
+    return `<div class="theme-btn${curTheme===t?' sel':''}${used?' used':''}" onclick="${used?'':'pickTheme(\'' + t.replace(/'/g,"\\'\'") + '\',this)'}" style="${used?'opacity:.35;text-decoration:line-through;cursor:not-allowed;':''}">${t}</div>`;
+  }).join('');
 }
 function pickTheme(t,el){
-  curTheme=t;document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');
+  if(usedThemes.has(t))return; // Already used
+  curTheme=t;
+  usedThemes.add(t);
   gameQs=buildPool(gsLvlV,gsManV,t);qIdx=-1;streak=0;bestStreak=0;resetStreakUI();
-  document.getElementById('g-qtxt').innerHTML=`<div class="q-waiting">Thème : ${t}</div>`;document.getElementById('g-choices').innerHTML='';
+  timerSec=60;stopTimer();updateTimerDisp();
+  renderThemes();
+  document.getElementById('g-qtxt').innerHTML=`<div class="q-waiting">Thème : ${t} — ▶ Suivant</div>`;
+  document.getElementById('g-choices').innerHTML='';
+  document.getElementById('btn-ok').disabled=true;
+  document.getElementById('btn-ko').disabled=true;
   syncState();toast('🎯 '+t);
 }
 
